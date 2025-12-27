@@ -1,9 +1,10 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
+import prisma from '../utils/prisma';
+
 const router = express.Router();
-const prisma = require('../utils/prisma');
 
 // Get all students
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const students = await prisma.factScore.findMany({
             orderBy: {
@@ -17,4 +18,4 @@ router.get('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

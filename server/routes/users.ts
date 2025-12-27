@@ -1,10 +1,24 @@
-const express = require('express');
+import express, { Request, Response, NextFunction } from 'express';
+import prisma from '../utils/prisma';
+import { logAudit } from '../utils/helpers';
+
 const router = express.Router();
-const prisma = require('../utils/prisma');
-const { logAudit } = require('../utils/helpers');
+
+interface UpdateRoleBody {
+    newRole: string;
+    adminUsername?: string;
+}
+
+interface UpdateProfileBody {
+    name?: string;
+    email?: string;
+    phone?: string;
+    currentPassword?: string;
+    newPassword?: string;
+}
 
 // Middleware to check if user is principal
-const isPrincipal = async (req, res, next) => {
+const isPrincipal = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     // In a real app, you would verify the JWT token here to get the user role
     // For this simple example, we assume the frontend sends the role in a header or we trust the request for now
     // BUT safest is to check the user exists and has role 'principal'
@@ -14,7 +28,7 @@ const isPrincipal = async (req, res, next) => {
 };
 
 // Get all users (id, username, role, name, etc.) - EXCLUDING PASSWORD
-router.get('/', isPrincipal, async (req, res) => {
+router.get('/', isPrincipal, async (req: Request, res: Response) => {
     try {
         const users = await prisma.user.findMany({
             select: {
@@ -37,12 +51,13 @@ router.get('/', isPrincipal, async (req, res) => {
 });
 
 // Update user role
-router.put('/:username/role', isPrincipal, async (req, res) => {
+router.put('/:username/role', isPrincipal, async (req: Request<{ username: string }, {}, UpdateRoleBody>, res: Response) => {
     const { username } = req.params;
     const { newRole, adminUsername } = req.body; // adminUsername is who performed the action
 
     if (!newRole) {
-        return res.status(400).json({ error: 'New role is required' });
+        res.status(400).json({ error: 'New role is required' });
+        return;
     }
 
     try {
@@ -52,7 +67,8 @@ router.put('/:username/role', isPrincipal, async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            res.status(404).json({ error: 'User not found' });
+            return;
         }
 
         const oldRole = user.role;
@@ -79,7 +95,7 @@ router.put('/:username/role', isPrincipal, async (req, res) => {
 });
 
 // Update user profile (Self update)
-router.put('/:username/profile', async (req, res) => {
+router.put('/:username/profile', async (req: Request<{ username: string }, {}, UpdateProfileBody>, res: Response) => {
     const { username } = req.params;
     const { name, email, phone, currentPassword, newPassword } = req.body;
 
@@ -90,17 +106,19 @@ router.put('/:username/profile', async (req, res) => {
         });
 
         if (!user) {
-            return res.status(404).json({ error: 'User not found' });
+            res.status(404).json({ error: 'User not found' });
+            return;
         }
 
         // 2. Prepare update data
-        const updateData = { name, email, phone };
+        const updateData: { name?: string; email?: string; phone?: string; password?: string } = { name, email, phone };
 
         // 3. Handle password change if requested
         if (newPassword) {
             // Verify current password
             if (user.password !== currentPassword) {
-                return res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
+                res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
+                return;
             }
             updateData.password = newPassword;
         }
@@ -133,4 +151,4 @@ router.put('/:username/profile', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

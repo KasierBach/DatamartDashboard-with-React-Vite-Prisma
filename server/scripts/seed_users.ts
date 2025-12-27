@@ -1,6 +1,15 @@
-const prisma = require('../utils/prisma');
+import prisma from '../utils/prisma';
 
-const users = [
+interface UserData {
+    username: string;
+    password: string;
+    role: string;
+    name: string;
+    email: string;
+    phone: string;
+}
+
+const users: UserData[] = [
     { username: 'principal', password: 'principal123', role: 'principal', name: 'Nguyễn Văn An', email: 'principal@school.edu.vn', phone: '0901234567' },
     { username: 'vice_principal', password: 'viceprincipal123', role: 'vice_principal', name: 'Trần Thị Bình', email: 'viceprincipal@school.edu.vn', phone: '0902345678' },
     { username: 'teacher', password: 'teacher123', role: 'teacher', name: 'Lê Văn Cường', email: 'teacher@school.edu.vn', phone: '0903456789' },
@@ -11,7 +20,7 @@ const users = [
     { username: 'student', password: 'student123', role: 'student', name: 'Vũ Minh Hùng', email: 'student@school.edu.vn', phone: '0908901234' },
 ];
 
-async function seedUsers() {
+async function seedUsers(): Promise<void> {
     try {
         console.log('Seeding users using Prisma...');
 
@@ -32,7 +41,8 @@ async function seedUsers() {
 
         console.log('All users seeded successfully!');
     } catch (err) {
-        console.error('Error seeding users:', err.message || err);
+        const message = err instanceof Error ? err.message : err;
+        console.error('Error seeding users:', message);
     } finally {
         await prisma.$disconnect();
     }

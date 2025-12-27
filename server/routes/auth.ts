@@ -1,10 +1,16 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
+import prisma from '../utils/prisma';
+import { logAudit } from '../utils/helpers';
+
 const router = express.Router();
-const prisma = require('../utils/prisma');
-const { logAudit } = require('../utils/helpers');
+
+interface LoginBody {
+    username: string;
+    password: string;
+}
 
 // Login
-router.post('/login', async (req, res) => {
+router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => {
     const { username, password } = req.body;
     try {
         const user = await prisma.user.findUnique({
@@ -38,4 +44,4 @@ router.post('/login', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,8 +1,8 @@
-const fs = require('fs');
-const path = require('path');
-const prisma = require('../utils/prisma');
+import fs from 'fs';
+import path from 'path';
+import prisma from '../utils/prisma';
 
-async function initDb() {
+async function initDb(): Promise<void> {
     try {
         const sqlPath = path.join(__dirname, '../init.sql');
         const sql = fs.readFileSync(sqlPath, 'utf8');

@@ -1,9 +1,10 @@
-const express = require('express');
+import express, { Request, Response } from 'express';
+import prisma from '../utils/prisma';
+
 const router = express.Router();
-const prisma = require('../utils/prisma');
 
 // Get all audit logs
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
     try {
         const logs = await prisma.auditLog.findMany({
             take: 100,
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
 });
 
 // Delete single audit log
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', async (req: Request<{ id: string }>, res: Response) => {
     try {
         const { id } = req.params;
         await prisma.auditLog.delete({
@@ -33,7 +34,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Clear all audit logs
-router.delete('/', async (req, res) => {
+router.delete('/', async (req: Request, res: Response) => {
     try {
         await prisma.auditLog.deleteMany();
         res.json({ success: true, message: 'All logs cleared' });
@@ -43,4 +44,4 @@ router.delete('/', async (req, res) => {
     }
 });
 
-module.exports = router;
+export default router;

@@ -1,6 +1,13 @@
-const prisma = require('../utils/prisma');
+import prisma from '../utils/prisma';
 
-const auditLogs = [
+interface AuditLogData {
+    username: string;
+    action: string;
+    details: string;
+    ip: string;
+}
+
+const auditLogs: AuditLogData[] = [
     { username: 'principal', action: 'LOGIN', details: 'User principal logged in successfully', ip: '192.168.1.1' },
     { username: 'principal', action: 'VIEW_DASHBOARD', details: 'Viewed main dashboard', ip: '192.168.1.1' },
     { username: 'vice_principal', action: 'LOGIN', details: 'User vice_principal logged in', ip: '192.168.1.2' },
@@ -13,7 +20,7 @@ const auditLogs = [
     { username: 'qa_testing', action: 'LOGIN', details: 'User qa_testing logged in', ip: '192.168.1.6' }
 ];
 
-async function seedAuditLogs() {
+async function seedAuditLogs(): Promise<void> {
     try {
         console.log('Seeding audit logs using Prisma...');
 

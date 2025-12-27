@@ -1,11 +1,23 @@
-const fs = require('fs');
-const path = require('path');
-const csv = require('csv-parser');
-const prisma = require('../utils/prisma');
+import fs from 'fs';
+import path from 'path';
+import csv from 'csv-parser';
+import prisma from '../utils/prisma';
+
+interface CsvRow {
+    gender: string;
+    race_ethnicity: string;
+    parental_education: string;
+    math: string;
+    math_score: string;
+    reading: string;
+    reading_score: string;
+    writing: string;
+    writing_score: string;
+}
 
 const csvFilePath = path.join(__dirname, '../../data/Data Mart Kết quả học tập.csv');
 
-async function importData() {
+async function importData(): Promise<void> {
     try {
         console.log('Clearing existing data using Prisma...');
         await prisma.factScore.deleteMany();
@@ -14,10 +26,10 @@ async function importData() {
         // so we use raw SQL for resetting the auto-increment ID if needed.
         await prisma.$executeRawUnsafe('ALTER SEQUENCE fact_scores_15dec_id_seq RESTART WITH 1');
 
-        const results = [];
+        const results: CsvRow[] = [];
         fs.createReadStream(csvFilePath)
             .pipe(csv())
-            .on('data', (data) => results.push(data))
+            .on('data', (data: CsvRow) => results.push(data))
             .on('end', async () => {
                 console.log(`Found ${results.length} records. Importing using Prisma createMany...`);
 

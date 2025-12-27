@@ -1,8 +1,14 @@
-const prisma = require('./prisma');
+import { Request } from 'express';
+import prisma from './prisma';
 
 // Helper to log audit events
-async function logAudit(username, action, details, req) {
-    const ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+export async function logAudit(
+    username: string,
+    action: string,
+    details: string,
+    req: Request
+): Promise<void> {
+    const ip = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'unknown';
     try {
         await prisma.auditLog.create({
             data: {
@@ -16,5 +22,3 @@ async function logAudit(username, action, details, req) {
         console.error('Audit log error:', err);
     }
 }
-
-module.exports = { logAudit };
