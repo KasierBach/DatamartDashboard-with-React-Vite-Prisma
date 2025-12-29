@@ -11,16 +11,20 @@
         "init-db": "ts-node scripts/init-db.ts",
         "import-data": "ts-node scripts/import_data.ts",
         "seed-audit-logs": "ts-node scripts/seed_audit_logs.ts",
+        "generate-types": "ts-node scripts/generate-types.ts",
         "seed-users": "ts-node scripts/seed_users.ts",
         "test-prisma": "ts-node scripts/test_prisma.ts"
     },
     "dependencies": {
         "@prisma/client": "^5.22.0",
+        "@types/multer": "^2.0.0",
         "cors": "^2.8.5",
         "csv-parser": "^3.0.0",
         "dotenv": "^16.6.1",
         "express": "^4.18.2",
-        "prisma": "^5.22.0"
+        "multer": "^2.0.2",
+        "prisma": "^5.22.0",
+        "socket.io": "^4.8.3"
     },
     "devDependencies": {
         "@types/cors": "^2.8.19",

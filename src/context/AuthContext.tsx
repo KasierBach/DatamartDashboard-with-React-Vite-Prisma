@@ -7,6 +7,7 @@ import { API_ENDPOINTS } from "../config/api";
 // export type Role = ... (Removed, utilizing shared type)
 
 interface User {
+    id: number;
     username: string;
     role: Role;
     name: string;

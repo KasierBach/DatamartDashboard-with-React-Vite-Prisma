@@ -23,6 +23,7 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
                 res.json({
                     success: true,
                     user: {
+                        id: user.id,
                         username: user.username,
                         role: user.role,
                         name: user.name,

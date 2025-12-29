@@ -45,3 +45,74 @@ model FactScore {
 
   @@map("fact_scores_15dec")
 }
+
+// ==================== MESSAGING MODELS ====================
+
+model Conversation {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now()) @map("created_at")
+  updated_at DateTime @updatedAt @map("updated_at")
+
+  members  ConversationMember[]
+  messages Message[]
+
+  @@map("conversations")
+}
+
+model ConversationMember {
+  id              Int      @id @default(autoincrement())
+  conversation_id Int      @map("conversation_id")
+  user_id         Int      @map("user_id")
+  joined_at       DateTime @default(now()) @map("joined_at")
+
+  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+
+  @@unique([conversation_id, user_id])
+  @@map("conversation_members")
+}
+
+model Message {
+  id              Int       @id @default(autoincrement())
+  conversation_id Int       @map("conversation_id")
+  sender_id       Int       @map("sender_id")
+  content         String
+  created_at      DateTime  @default(now()) @map("created_at")
+  is_edited       Boolean   @default(false) @map("is_edited")
+  edited_at       DateTime? @map("edited_at")
+  is_recalled     Boolean   @default(false) @map("is_recalled")
+  attachment_url  String?   @map("attachment_url")
+  attachment_type String?   @map("attachment_type")
+
+  conversation Conversation    @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  statuses     MessageStatus[]
+  deletedFor   MessageDelete[]
+
+  @@map("messages")
+}
+
+// Track who deleted message for themselves
+model MessageDelete {
+  id         Int      @id @default(autoincrement())
+  message_id Int      @map("message_id")
+  user_id    Int      @map("user_id")
+  deleted_at DateTime @default(now()) @map("deleted_at")
+
+  message Message @relation(fields: [message_id], references: [id], onDelete: Cascade)
+
+  @@unique([message_id, user_id])
+  @@map("message_deletes")
+}
+
+// Tracking: sent -> delivered -> seen
+model MessageStatus {
+  id           Int       @id @default(autoincrement())
+  message_id   Int       @map("message_id")
+  user_id      Int       @map("user_id")
+  delivered_at DateTime? @map("delivered_at")
+  seen_at      DateTime? @map("seen_at")
+
+  message Message @relation(fields: [message_id], references: [id], onDelete: Cascade)
+
+  @@unique([message_id, user_id])
+  @@map("message_statuses")
+}

@@ -16,6 +16,9 @@ export const API_ENDPOINTS = {
     // Users
     USERS: `${API_BASE_URL}/api/users`,
 
+    // Messages
+    MESSAGES: `${API_BASE_URL}/api/messages`,
+
     // Health check
     HEALTH: `${API_BASE_URL}/api/health`,
 };

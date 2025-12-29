@@ -1,57 +1,11 @@
 import { useState, useMemo } from "react"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-    AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
-import {
-    Search,
-    Download,
-    RefreshCw,
-    ArrowUpDown,
-    ArrowUp,
-    ArrowDown,
-    Trash2,
-    Plus,
-    Filter,
-    Pencil,
-    RotateCcw
-} from "lucide-react"
-
 import { useDebounce } from "@/hooks/use-debounce"
 import { DataRecord } from "../types"
 import { AddRecordDialog } from "../components/AddRecordDialog"
 import { EditRecordDialog } from "../components/EditRecordDialog"
+import { StudentTable, StudentToolbar, SortField, SortDirection } from "../components/students"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "sonner"
-
-// Types
-type SortField = "id" | "gender" | "race_ethnicity" | "parental_education" | "math_score" | "reading_score" | "writing_score" | "status" | "lastUpdate"
-type SortDirection = "asc" | "desc" | null
 
 interface StudentListPageProps {
     data: DataRecord[]
@@ -89,24 +43,26 @@ export function StudentListPage({
         let result = data.filter(
             (item) =>
                 (item.id.toString().includes(lowerTerm) ||
-                    item.gender.toLowerCase().includes(lowerTerm) ||
-                    item.race_ethnicity.toLowerCase().includes(lowerTerm) ||
-                    item.parental_education.toLowerCase().includes(lowerTerm) ||
-                    item.math.toLowerCase().includes(lowerTerm) ||
-                    item.math_score.toString().includes(lowerTerm) ||
-                    item.reading.toLowerCase().includes(lowerTerm) ||
-                    item.reading_score.toString().includes(lowerTerm) ||
-                    item.writing.toLowerCase().includes(lowerTerm) ||
-                    item.writing_score.toString().includes(lowerTerm) ||
-                    item.status.toLowerCase().includes(lowerTerm) ||
-                    item.lastUpdate.toLowerCase().includes(lowerTerm)) &&
+                    item.gender?.toLowerCase().includes(lowerTerm) ||
+                    item.race_ethnicity?.toLowerCase().includes(lowerTerm) ||
+                    item.parental_education?.toLowerCase().includes(lowerTerm) ||
+                    item.math?.toLowerCase().includes(lowerTerm) ||
+                    item.math_score?.toString().includes(lowerTerm) ||
+                    item.reading?.toLowerCase().includes(lowerTerm) ||
+                    item.reading_score?.toString().includes(lowerTerm) ||
+                    item.writing?.toLowerCase().includes(lowerTerm) ||
+                    item.writing_score?.toString().includes(lowerTerm) ||
+                    item.status?.toLowerCase().includes(lowerTerm) ||
+                    item.lastUpdate?.toLowerCase().includes(lowerTerm)) &&
                 (statusFilter === "all" || item.status === statusFilter)
         )
 
         if (sortField && sortDirection) {
             result = [...result].sort((a, b) => {
-                let aValue: string | number = a[sortField]
-                let bValue: string | number = b[sortField]
+                // @ts-ignore - Dynamic key access with potential undefined values
+                let aValue: string | number = a[sortField] || ""
+                // @ts-ignore
+                let bValue: string | number = b[sortField] || ""
 
                 if (typeof aValue === "string" && typeof bValue === "string") {
                     aValue = aValue.toLowerCase()
@@ -138,38 +94,6 @@ export function StudentListPage({
         }
     }
 
-    const getSortIcon = (field: SortField) => {
-        if (sortField !== field) {
-            return <ArrowUpDown className="ml-2 h-4 w-4" />
-        }
-        if (sortDirection === "asc") {
-            return <ArrowUp className="ml-2 h-4 w-4" />
-        }
-        if (sortDirection === "desc") {
-            return <ArrowDown className="ml-2 h-4 w-4" />
-        }
-        return <ArrowUpDown className="ml-2 h-4 w-4" />
-    }
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case "active":
-                return (
-                    <Badge className="bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border-emerald-500/20">
-                        Active
-                    </Badge>
-                )
-            case "inactive":
-                return <Badge className="bg-zinc-500/10 text-zinc-400 hover:bg-zinc-500/20 border-zinc-500/20">Inactive</Badge>
-            case "pending":
-                return (
-                    <Badge className="bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 border-amber-500/20">Pending</Badge>
-                )
-            default:
-                return <Badge>{status}</Badge>
-        }
-    }
-
     const handleOpenEdit = (record: DataRecord) => {
         setEditingRecord(record)
         setIsEditDialogOpen(true)
@@ -188,15 +112,15 @@ export function StudentListPage({
             ...filteredAndSortedData.map(item =>
                 [
                     item.id,
-                    item.gender,
-                    `"${item.race_ethnicity}"`,
-                    `"${item.parental_education}"`,
-                    item.math,
-                    item.math_score,
-                    item.reading,
-                    item.reading_score,
-                    item.writing,
-                    item.writing_score,
+                    item.gender || "",
+                    `"${item.race_ethnicity || ""}"`,
+                    `"${item.parental_education || ""}"`,
+                    item.math || "",
+                    item.math_score || 0,
+                    item.reading || "",
+                    item.reading_score || 0,
+                    item.writing || "",
+                    item.writing_score || 0,
                     item.status,
                     item.lastUpdate
                 ].join(",")
@@ -230,168 +154,35 @@ export function StudentListPage({
 
             <Card>
                 <CardHeader>
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                    <div className="flex justify-between items-center">
                         <div>
                             <CardTitle>Performance Table</CardTitle>
                             <CardDescription>Chi tiết điểm số học sinh</CardDescription>
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                            <Button variant="default" size="sm" onClick={() => setIsAddDialogOpen(true)}>
-                                <Plus className="h-4 w-4 mr-2" />
-                                Thêm mới
-                            </Button>
-
-                            <AddRecordDialog
-                                isOpen={isAddDialogOpen}
-                                onOpenChange={setIsAddDialogOpen}
-                                onAdd={onAdd}
-                                existingIds={existingIds}
-                            />
-
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={onRefresh}
-                                disabled={isRefreshing}
-                            >
-                                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                                {isRefreshing ? 'Đang tải...' : 'Refresh'}
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={handleExport}>
-                                <Download className="h-4 w-4 mr-2" />
-                                Export CSV
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={onReset} className="text-orange-500 hover:text-orange-600 hover:bg-orange-500/10">
-                                <RotateCcw className="h-4 w-4 mr-2" />
-                                Reset CSV
-                            </Button>
-                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
-                    {/* Search & Filter */}
-                    <div className="mb-4 flex flex-col md:flex-row gap-4">
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                            <Input
-                                placeholder="Tìm kiếm theo giới tính, sắc tộc, học vấn..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                                className="pl-10"
-                            />
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <Filter className="h-4 w-4 text-muted-foreground" />
-                            <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-[150px]">
-                                    <SelectValue placeholder="Lọc trạng thái" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Tất cả</SelectItem>
-                                    <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="inactive">Inactive</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-                    </div>
+                    <StudentToolbar
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                        statusFilter={statusFilter}
+                        onFilterChange={setStatusFilter}
+                        onRefresh={onRefresh}
+                        onReset={onReset}
+                        onExport={handleExport}
+                        onAdd={() => setIsAddDialogOpen(true)}
+                        isRefreshing={isRefreshing}
+                    />
 
-                    {/* Table */}
-                    <div className="relative overflow-x-auto rounded-md border">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead className="w-16 cursor-pointer hover:bg-muted/50" onClick={() => handleSort("id")}>
-                                        <div className="flex items-center">ID {getSortIcon("id")}</div>
-                                    </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("gender")}>
-                                        <div className="flex items-center">Gender {getSortIcon("gender")}</div>
-                                    </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("race_ethnicity")}>
-                                        <div className="flex items-center">Race/Ethnicity {getSortIcon("race_ethnicity")}</div>
-                                    </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("parental_education")}>
-                                        <div className="flex items-center">Parental Edu {getSortIcon("parental_education")}</div>
-                                    </TableHead>
-                                    <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort("math_score")}>
-                                        <div className="flex items-center justify-end">Math {getSortIcon("math_score")}</div>
-                                    </TableHead>
-                                    <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort("reading_score")}>
-                                        <div className="flex items-center justify-end">Reading {getSortIcon("reading_score")}</div>
-                                    </TableHead>
-                                    <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => handleSort("writing_score")}>
-                                        <div className="flex items-center justify-end">Writing {getSortIcon("writing_score")}</div>
-                                    </TableHead>
-                                    <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => handleSort("status")}>
-                                        <div className="flex items-center">Status {getSortIcon("status")}</div>
-                                    </TableHead>
-                                    <TableHead className="w-24">Actions</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {filteredAndSortedData.length === 0 ? (
-                                    <TableRow>
-                                        <TableCell colSpan={9} className="h-24 text-center">
-                                            Không tìm thấy kết quả.
-                                        </TableCell>
-                                    </TableRow>
-                                ) : (
-                                    filteredAndSortedData.map((item) => (
-                                        <TableRow key={item.id} className="group">
-                                            <TableCell className="font-mono text-muted-foreground">{item.id}</TableCell>
-                                            <TableCell>{item.gender}</TableCell>
-                                            <TableCell>{item.race_ethnicity}</TableCell>
-                                            <TableCell>{item.parental_education}</TableCell>
-                                            <TableCell className="text-right font-medium">{item.math_score}</TableCell>
-                                            <TableCell className="text-right font-medium">{item.reading_score}</TableCell>
-                                            <TableCell className="text-right font-medium">{item.writing_score}</TableCell>
-                                            <TableCell>{getStatusBadge(item.status)}</TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-1">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
-                                                        onClick={() => handleOpenEdit(item)}
-                                                    >
-                                                        <Pencil className="h-4 w-4" />
-                                                    </Button>
-                                                    <AlertDialog>
-                                                        <AlertDialogTrigger asChild>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive"
-                                                            >
-                                                                <Trash2 className="h-4 w-4" />
-                                                            </Button>
-                                                        </AlertDialogTrigger>
-                                                        <AlertDialogContent>
-                                                            <AlertDialogHeader>
-                                                                <AlertDialogTitle>Xác nhận xóa?</AlertDialogTitle>
-                                                                <AlertDialogDescription>
-                                                                    Bạn có chắc muốn xóa record #{item.id}?
-                                                                    Hành động này không thể hoàn tác.
-                                                                </AlertDialogDescription>
-                                                            </AlertDialogHeader>
-                                                            <AlertDialogFooter>
-                                                                <AlertDialogCancel>Hủy</AlertDialogCancel>
-                                                                <AlertDialogAction
-                                                                    onClick={() => onDelete(item.id)}
-                                                                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                                                >
-                                                                    Xóa
-                                                                </AlertDialogAction>
-                                                            </AlertDialogFooter>
-                                                        </AlertDialogContent>
-                                                    </AlertDialog>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                )}
-                            </TableBody>
-                        </Table>
+                    <div className="mt-6">
+                        <StudentTable
+                            data={filteredAndSortedData}
+                            sortField={sortField}
+                            sortDirection={sortDirection}
+                            onSort={handleSort}
+                            onEdit={handleOpenEdit}
+                            onDelete={onDelete}
+                        />
                     </div>
 
                     {/* Pagination Info */}
@@ -401,16 +192,16 @@ export function StudentListPage({
                             {searchTerm && ` (tìm: "${searchTerm}")`}
                             {statusFilter !== "all" && ` (lọc: ${statusFilter})`}
                         </div>
-                        <div className="flex items-center gap-2">
-                            {sortField && (
-                                <Badge variant="secondary">
-                                    Sắp xếp: {sortField} ({sortDirection})
-                                </Badge>
-                            )}
-                        </div>
                     </div>
                 </CardContent>
             </Card>
+
+            <AddRecordDialog
+                isOpen={isAddDialogOpen}
+                onOpenChange={setIsAddDialogOpen}
+                onAdd={onAdd}
+                existingIds={existingIds}
+            />
 
             <EditRecordDialog
                 isOpen={isEditDialogOpen}
@@ -422,3 +213,4 @@ export function StudentListPage({
         </div>
     )
 }
+

@@ -1,0 +1,2 @@
+﻿src/features/chat/components/ChatHeader.tsx(4,29): error TS6196: 'User' is declared but never used.
+src/features/chat/components/ConversationItem.tsx(3,29): error TS6196: 'User' is declared but never used.
