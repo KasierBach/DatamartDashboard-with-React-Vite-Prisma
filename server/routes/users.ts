@@ -13,6 +13,7 @@ interface UpdateProfileBody {
     name?: string;
     email?: string;
     phone?: string;
+    avatar?: string;
     currentPassword?: string;
     newPassword?: string;
 }
@@ -37,7 +38,8 @@ router.get('/', isPrincipal, async (req: Request, res: Response) => {
                 role: true,
                 name: true,
                 email: true,
-                phone: true
+                phone: true,
+                avatar: true
             },
             orderBy: {
                 id: 'asc'
@@ -97,7 +99,7 @@ router.put('/:username/role', isPrincipal, async (req: Request<{ username: strin
 // Update user profile (Self update)
 router.put('/:username/profile', async (req: Request<{ username: string }, {}, UpdateProfileBody>, res: Response) => {
     const { username } = req.params;
-    const { name, email, phone, currentPassword, newPassword } = req.body;
+    const { name, email, phone, avatar, currentPassword, newPassword } = req.body;
 
     try {
         // 1. Get current user
@@ -111,7 +113,7 @@ router.put('/:username/profile', async (req: Request<{ username: string }, {}, U
         }
 
         // 2. Prepare update data
-        const updateData: { name?: string; email?: string; phone?: string; password?: string } = { name, email, phone };
+        const updateData: { name?: string; email?: string; phone?: string; avatar?: string; password?: string } = { name, email, phone, avatar };
 
         // 3. Handle password change if requested
         if (newPassword) {
@@ -127,11 +129,13 @@ router.put('/:username/profile', async (req: Request<{ username: string }, {}, U
             where: { username: username },
             data: updateData,
             select: {
+                id: true,
                 username: true,
                 role: true,
                 name: true,
                 email: true,
-                phone: true
+                phone: true,
+                avatar: true
             }
         });
 

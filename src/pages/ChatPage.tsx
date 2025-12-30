@@ -8,11 +8,12 @@ import {
     ConversationSidebar,
     ChatWindow,
     UserProfileSidebar,
+    GroupSettingsDialog,
 } from '@/features/chat';
 import type { User } from '@/features/chat/types';
 
 export function ChatPage() {
-    useAuth();
+    const { updateUser } = useAuth();
     const { onlineUsers, currentUserId } = useSocket();
 
     // Conversations hook
@@ -31,6 +32,9 @@ export function ChatPage() {
         deleteConversation,
         markConversationAsRead,
         markConversationAsUnread,
+        createGroup,
+        availableUsers,
+        hideConversation,
     } = useConversations({ userId: currentUserId });
 
     // Messages hook
@@ -93,6 +97,9 @@ export function ChatPage() {
         }
     };
 
+    // State for group settings
+    const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
+
     return (
         <>
             <div className="h-[calc(100vh-8rem)] flex bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -100,6 +107,7 @@ export function ChatPage() {
                     conversations={conversations}
                     selectedConversation={selectedConversation}
                     currentUserId={currentUserId}
+                    availableUsers={availableUsers}
                     showNewChat={showNewChat}
                     searchQuery={searchQuery}
                     filteredUsers={filteredUsers}
@@ -113,6 +121,8 @@ export function ChatPage() {
                     onMarkAsRead={markConversationAsRead}
                     onMarkAsUnread={markConversationAsUnread}
                     onViewProfile={handleViewProfile}
+                    onCreateGroup={createGroup}
+                    onHideConversation={hideConversation}
                 />
 
                 <ChatWindow
@@ -135,14 +145,32 @@ export function ChatPage() {
                     attachment={attachment}
                     onFileSelect={handleFileSelect}
                     onRemoveAttachment={handleRemoveAttachment}
+                    onInfoClick={() => setIsGroupSettingsOpen(true)}
                 />
             </div>
 
             <UserProfileSidebar
                 user={viewingUser}
+                currentUserId={currentUserId}
                 open={!!viewingUser}
                 onClose={() => setViewingUser(null)}
+                onUpdateUser={(updatedUser: any) => {
+                    // Update global auth context
+                    updateUser(updatedUser);
+                    // Update local viewing user if it matches
+                    setViewingUser(updatedUser);
+                }}
             />
+
+            {selectedConversation && (
+                <GroupSettingsDialog
+                    open={isGroupSettingsOpen}
+                    onClose={() => setIsGroupSettingsOpen(false)}
+                    conversation={selectedConversation}
+                    currentUserId={currentUserId}
+                    availableUsers={availableUsers}
+                />
+            )}
         </>
     );
 }

@@ -12,7 +12,9 @@ export {
     MessageBubble,
     MessageList,
     ChatHeader,
+    CreateGroupDialog,
     ChatInput,
     ChatWindow,
     UserProfileSidebar,
+    GroupSettingsDialog,
 } from './components';

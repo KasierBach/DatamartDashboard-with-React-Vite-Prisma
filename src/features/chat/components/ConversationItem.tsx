@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Check, Trash2, User, MessageCircle } from 'lucide-react';
+import { Check, Trash2, User, MessageCircle, EyeOff } from 'lucide-react';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -19,6 +19,7 @@ interface ConversationItemProps {
     onMarkAsRead?: (conversationId: number) => void;
     onMarkAsUnread?: (conversationId: number) => void;
     onDelete?: (conversationId: number) => void;
+    onHide?: (conversationId: number) => void;
     onViewProfile?: (userId: number) => void;
 }
 
@@ -32,9 +33,13 @@ export function ConversationItem({
     onMarkAsRead,
     onMarkAsUnread,
     onDelete,
+    onHide,
     onViewProfile,
 }: ConversationItemProps) {
-    const otherUser = conversation.users?.find(u => u.id !== currentUserId);
+    const isGroup = conversation.type === 'group';
+    const otherUser = isGroup ? undefined : conversation.users?.find(u => u.id !== currentUserId);
+    const displayUser = isGroup ? { id: 0, username: 'group', name: conversation.name || 'Nhóm mới', role: 'group' } : otherUser;
+
     const lastMessage = conversation.messages?.[0];
     const hasUnread = conversation.unreadCount > 0;
 
@@ -48,12 +53,12 @@ export function ConversationItem({
                         isSelected ? 'bg-primary/10' : 'hover:bg-muted'
                     )}
                 >
-                    <UserAvatar user={otherUser} isOnline={isOnline} />
+                    <UserAvatar user={displayUser as any} isOnline={!isGroup && (isOnline || false)} />
 
                     <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-center">
                             <p className="font-medium truncate">
-                                {otherUser?.name || 'Người dùng'}
+                                {isGroup ? conversation.name : (otherUser?.name || 'Người dùng')}
                             </p>
                             {lastMessage && (
                                 <span className="text-xs text-muted-foreground">
@@ -103,15 +108,34 @@ export function ConversationItem({
                     </ContextMenuItem>
                 )}
 
+                {onHide && (
+                    <>
+                        <ContextMenuSeparator />
+                        <ContextMenuItem
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onHide(conversation.id);
+                            }}
+                            className="gap-2"
+                        >
+                            <EyeOff className="h-4 w-4" />
+                            Ẩn cuộc trò chuyện
+                        </ContextMenuItem>
+                    </>
+                )}
+
                 {onDelete && (
                     <>
                         <ContextMenuSeparator />
                         <ContextMenuItem
                             variant="destructive"
-                            onClick={() => onDelete(conversation.id)}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDelete(conversation.id);
+                            }}
                         >
                             <Trash2 className="h-4 w-4" />
-                            Xóa đoạn chat
+                            Xóa cuộc trò chuyện
                         </ContextMenuItem>
                     </>
                 )}

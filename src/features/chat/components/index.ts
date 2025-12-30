@@ -4,6 +4,8 @@ export { ConversationSidebar } from './ConversationSidebar';
 export { MessageBubble } from './MessageBubble';
 export { MessageList } from './MessageList';
 export { ChatHeader } from './ChatHeader';
+export { CreateGroupDialog } from './CreateGroupDialog';
 export { ChatInput } from './ChatInput';
 export { ChatWindow } from './ChatWindow';
 export { UserProfileSidebar } from './UserProfileSidebar';
+export { GroupSettingsDialog } from './GroupSettingsDialog';

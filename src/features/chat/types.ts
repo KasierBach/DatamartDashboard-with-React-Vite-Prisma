@@ -5,6 +5,7 @@ export interface User {
     role?: string;
     email?: string;
     phone?: string;
+    avatar?: string;
 }
 
 export interface MessageStatus {
@@ -26,13 +27,23 @@ export interface Message {
     attachment_url?: string;
     attachment_type?: 'image' | 'video';
     statuses: MessageStatus[];
+    sender?: {
+        id: number;
+        username: string;
+        name: string;
+        avatar?: string;
+    };
 }
 
 export interface Conversation {
     id: number;
+    type: 'direct' | 'group';
+    name?: string;
+    group_avatar?: string;
     created_at: string;
     updated_at: string;
     users: User[];
+    members?: { user_id: number; role: string; }[];
     messages: Message[];
     unreadCount: number;
 }

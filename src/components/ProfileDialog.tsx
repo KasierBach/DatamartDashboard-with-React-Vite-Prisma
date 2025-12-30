@@ -13,7 +13,9 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
-import { Loader2 } from "lucide-react"
+import { Loader2, Camera } from "lucide-react"
+import { UserAvatar } from "@/features/chat/components/UserAvatar"
+import { useRef } from "react"
 
 interface ProfileDialogProps {
     open: boolean
@@ -26,9 +28,12 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
     const [name, setName] = useState(user?.name || "")
     const [email, setEmail] = useState(user?.email || "")
     const [phone, setPhone] = useState(user?.phone || "")
+    const [avatar, setAvatar] = useState(user?.avatar || "")
     const [currentPassword, setCurrentPassword] = useState("")
     const [newPassword, setNewPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
+    const [isUploading, setIsUploading] = useState(false)
+    const fileInputRef = useRef<HTMLInputElement>(null)
 
     // Sync form with user data when dialog opens
     useEffect(() => {
@@ -36,11 +41,37 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
             setName(user.name || "")
             setEmail(user.email || "")
             setPhone(user.phone || "")
+            setAvatar(user.avatar || "")
             setCurrentPassword("")
             setNewPassword("")
             setConfirmPassword("")
         }
     }, [open, user])
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        setIsUploading(true)
+        try {
+            const formData = new FormData()
+            formData.append('file', file)
+
+            const response = await fetch(API_ENDPOINTS.UPLOAD, {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (!response.ok) throw new Error('Upload failed')
+            const data = await response.json()
+            setAvatar(data.url)
+        } catch (error) {
+            console.error('Upload error:', error)
+            toast.error('Tải ảnh thất bại')
+        } finally {
+            setIsUploading(false)
+        }
+    }
 
     if (!user) return null
 
@@ -73,6 +104,7 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                 name,
                 email,
                 phone,
+                avatar,
             }
 
             if (newPassword) {
@@ -123,6 +155,43 @@ export function ProfileDialog({ open, onOpenChange }: ProfileDialogProps) {
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
+                    <div className="flex flex-row items-center justify-center gap-6 mb-4">
+                        <div
+                            className="relative group cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}
+                        >
+                            <UserAvatar
+                                user={{ ...user, avatar: avatar } as any}
+                                className="h-24 w-24 text-3xl ring-2 ring-border shadow-sm"
+                                size="lg"
+                            />
+                            <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center">
+                                <Camera className="h-8 w-8 text-white drop-shadow-md" />
+                            </div>
+                            {isUploading && (
+                                <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center z-10">
+                                    <Loader2 className="h-8 w-8 text-white animate-spin" />
+                                </div>
+                            )}
+                            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground p-1.5 rounded-full ring-2 ring-background shadow-sm hover:scale-110 transition-transform">
+                                <Camera className="h-3.5 w-3.5" />
+                            </div>
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                        <div className="flex flex-col text-left">
+                            <span className="font-semibold text-lg">{name || user.username}</span>
+                            <p className="text-xs text-muted-foreground mt-1 cursor-pointer hover:text-primary transition-colors" onClick={() => fileInputRef.current?.click()}>
+                                Nhấn vào ảnh để thay đổi
+                            </p>
+                        </div>
+                    </div>
+
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="username" className="text-right">
                             Username

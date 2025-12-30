@@ -21,6 +21,9 @@ export const API_ENDPOINTS = {
 
     // Health check
     HEALTH: `${API_BASE_URL}/api/health`,
+
+    // Upload
+    UPLOAD: `${API_BASE_URL}/api/upload`,
 };
 
 export default API_BASE_URL;

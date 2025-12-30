@@ -53,7 +53,10 @@ export const initializeSocket = (io: Server) => {
                         attachment_type: data.attachmentType
                     },
                     include: {
-                        statuses: true
+                        statuses: true,
+                        sender: {
+                            select: { id: true, username: true, name: true, avatar: true }
+                        }
                     }
                 });
 
@@ -61,6 +64,15 @@ export const initializeSocket = (io: Server) => {
                 await prisma.conversation.update({
                     where: { id: data.conversationId },
                     data: { updated_at: new Date() }
+                });
+
+                // Unhide conversation for all members (Soft Delete logic)
+                await prisma.conversationMember.updateMany({
+                    where: {
+                        conversation_id: data.conversationId,
+                        is_hidden: true
+                    },
+                    data: { is_hidden: false }
                 });
 
                 // Emit to conversation room
@@ -73,6 +85,15 @@ export const initializeSocket = (io: Server) => {
 
                 // Notify other members (for badge updates etc)
                 members.forEach(member => {
+                    // Update sidebar for everyone (including sender)
+                    io.to(`user:${member.user_id}`).emit('conversation:updated', {
+                        id: data.conversationId,
+                        updated_at: message.created_at,
+                        messages: [message],
+                        // For others, increment unread? Client side handles this usually or needs full fetch. 
+                        // For now keep it simple: just update content/time.
+                    });
+
                     if (member.user_id !== data.senderId) {
                         io.to(`user:${member.user_id}`).emit('message:notification', {
                             conversationId: data.conversationId,
@@ -178,7 +199,12 @@ export const initializeSocket = (io: Server) => {
                         is_edited: true,
                         edited_at: new Date()
                     },
-                    include: { statuses: true }
+                    include: {
+                        statuses: true,
+                        sender: {
+                            select: { id: true, username: true, name: true, avatar: true }
+                        }
+                    }
                 });
 
                 // Broadcast to conversation

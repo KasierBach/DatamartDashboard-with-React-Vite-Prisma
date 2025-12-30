@@ -37,6 +37,12 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Attach Socket.IO to Request
+app.use((req: any, res, next) => {
+    req.io = io;
+    next();
+});
+
 // Routes
 app.use('/api', authRoutes);
 app.use('/api/audit-logs', auditLogsRoutes);

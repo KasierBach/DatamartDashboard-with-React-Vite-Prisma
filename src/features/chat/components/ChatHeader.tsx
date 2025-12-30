@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from './UserAvatar';
 import type { Conversation } from '../types';
@@ -8,6 +8,7 @@ interface ChatHeaderProps {
     currentUserId: number | null;
     isUserOnline: (userId: number) => boolean;
     onBackClick: () => void;
+    onInfoClick?: () => void;
 }
 
 export function ChatHeader({
@@ -15,29 +16,44 @@ export function ChatHeader({
     currentUserId,
     isUserOnline,
     onBackClick,
+    onInfoClick
 }: ChatHeaderProps) {
-    const otherUser = conversation.users?.find(u => u.id !== currentUserId);
-    const isOnline = otherUser ? isUserOnline(otherUser.id) : false;
+    const isGroup = conversation.type === 'group';
+    const otherUser = isGroup ? undefined : conversation.users?.find(u => u.id !== currentUserId);
+    const displayUser = isGroup ? { id: 0, username: 'group', name: conversation.name, role: 'group' } : otherUser;
+
+    const isOnline = !isGroup && otherUser ? isUserOnline(otherUser.id) : false;
+    const subtitle = isGroup
+        ? `${conversation.members?.length || conversation.users?.length || 0} thành viên`
+        : (isOnline ? 'Đang hoạt động' : 'Ngoại tuyến');
 
     return (
-        <div className="p-4 border-b flex items-center gap-3">
-            <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden"
-                onClick={onBackClick}
-            >
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
+        <div className="p-4 border-b flex items-center gap-3 justify-between">
+            <div className="flex items-center gap-3">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden shrink-0"
+                    onClick={onBackClick}
+                >
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
 
-            <UserAvatar user={otherUser} size="sm" isOnline={isOnline} />
+                <UserAvatar user={displayUser as any} size="sm" isOnline={isOnline} />
 
-            <div>
-                <p className="font-medium">{otherUser?.name}</p>
-                <p className="text-xs text-muted-foreground">
-                    {isOnline ? 'Đang hoạt động' : 'Ngoại tuyến'}
-                </p>
+                <div>
+                    <p className="font-medium">{isGroup ? conversation.name : otherUser?.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                        {subtitle}
+                    </p>
+                </div>
             </div>
+
+            {isGroup && (
+                <Button variant="ghost" size="icon" onClick={onInfoClick}>
+                    <Info className="h-5 w-5 text-muted-foreground" />
+                </Button>
+            )}
         </div>
     );
 }

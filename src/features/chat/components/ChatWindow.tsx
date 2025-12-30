@@ -25,6 +25,7 @@ interface ChatWindowProps {
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
+    onInfoClick?: () => void;
 }
 
 export function ChatWindow({
@@ -47,6 +48,7 @@ export function ChatWindow({
     attachment,
     onFileSelect,
     onRemoveAttachment,
+    onInfoClick,
 }: ChatWindowProps) {
     if (!conversation) {
         return (
@@ -75,10 +77,12 @@ export function ChatWindow({
                 currentUserId={currentUserId}
                 isUserOnline={isUserOnline}
                 onBackClick={onBackClick}
+                onInfoClick={onInfoClick}
             />
 
             <MessageList
                 messages={messages}
+                isGroup={conversation.type === 'group'}
                 currentUserId={currentUserId}
                 messagesEndRef={messagesEndRef}
                 onEdit={onEditMessage}

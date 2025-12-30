@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSocket } from '@/context/SocketContext';
 import { API_ENDPOINTS } from '@/config/api';
 import type { Conversation, User } from '../types';
 
@@ -24,6 +25,8 @@ interface UseConversationsReturn {
     deleteConversation: (conversationId: number) => Promise<void>;
     markConversationAsRead: (conversationId: number) => Promise<void>;
     markConversationAsUnread: (conversationId: number) => Promise<void>;
+    createGroup: (name: string, members: number[]) => Promise<void>;
+    hideConversation: (conversationId: number) => Promise<void>;
 }
 
 export function useConversations({ userId }: UseConversationsProps): UseConversationsReturn {
@@ -33,6 +36,41 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
     const [showNewChat, setShowNewChat] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [isMobileListView, setIsMobileListView] = useState(true);
+    const { onConversationUpdated, onConversationNew, onConversationRemoved } = useSocket();
+
+    // Listen for conversation updates
+    useEffect(() => {
+        const removeUpdateListener = onConversationUpdated((updatedConv) => {
+            setConversations(prev => prev.map(c =>
+                c.id === updatedConv.id ? { ...c, ...updatedConv } : c
+            ));
+
+            // Also update selected conversation if it matches
+            if (selectedConversation?.id === updatedConv.id) {
+                setSelectedConversation(prev => prev ? { ...prev, ...updatedConv } : null);
+            }
+        });
+
+        const removeNewListener = onConversationNew((newConv) => {
+            setConversations(prev => {
+                if (prev.some(c => c.id === newConv.id)) return prev;
+                return [newConv, ...prev];
+            });
+        });
+
+        const removeRemoveListener = onConversationRemoved(({ id }) => {
+            setConversations(prev => prev.filter(c => c.id !== id));
+            if (selectedConversation?.id === id) {
+                setSelectedConversation(null);
+            }
+        });
+
+        return () => {
+            removeUpdateListener();
+            removeNewListener();
+            removeRemoveListener();
+        };
+    }, [onConversationUpdated, onConversationNew, onConversationRemoved, selectedConversation]);
 
     // Load conversations
     const loadConversations = useCallback(async () => {
@@ -154,6 +192,44 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
         }
     }, [userId]);
 
+    const createGroup = useCallback(async (name: string, memberIds: number[]) => {
+        if (!userId) return;
+        try {
+            const res = await fetch(`${API_ENDPOINTS.MESSAGES}/groups`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId, name, memberIds })
+            });
+            if (res.ok) {
+                const conv = await res.json();
+                setSelectedConversation(conv);
+                setShowNewChat(false);
+                setIsMobileListView(false);
+                loadConversations();
+            }
+        } catch (error) {
+            console.error('Error creating group:', error);
+        }
+    }, [userId, loadConversations]);
+
+    // Hide conversation (Soft Delete)
+    const hideConversation = useCallback(async (conversationId: number) => {
+        if (!userId) return;
+        try {
+            const res = await fetch(`${API_ENDPOINTS.MESSAGES}/conversations/${conversationId}/hide?userId=${userId}`, {
+                method: 'PUT'
+            });
+            if (res.ok) {
+                setConversations(prev => prev.filter(c => c.id !== conversationId));
+                if (selectedConversation?.id === conversationId) {
+                    setSelectedConversation(null);
+                }
+            }
+        } catch (error) {
+            console.error('Error hiding conversation:', error);
+        }
+    }, [userId, selectedConversation]);
+
     return {
         conversations,
         selectedConversation,
@@ -172,5 +248,7 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
         deleteConversation,
         markConversationAsRead,
         markConversationAsUnread,
+        createGroup,
+        hideConversation,
     };
 }

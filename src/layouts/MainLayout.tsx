@@ -5,6 +5,7 @@ import { LayoutDashboard, Users, GraduationCap, LogOut, User, ChevronDown, Mail,
 import { useAuth } from "@/context/AuthContext"
 import { getRoleDisplayName, getRoleBadgeColor, canAccessAuditLogs, canManageStudents } from "@/utils/roleHelpers"
 import { ProfileDialog } from "@/components/ProfileDialog"
+import { UserAvatar } from "@/features/chat/components/UserAvatar"
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -78,9 +79,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <button className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-muted transition-colors border">
-                                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                            <User className="h-4 w-4 text-primary" />
-                                        </div>
+                                        <UserAvatar user={user} size="sm" />
                                         <div className="hidden sm:block text-left">
                                             <p className="text-sm font-medium leading-tight">{user.name}</p>
                                             <p className="text-xs text-muted-foreground">{user.username}</p>
@@ -92,9 +91,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                                     <DropdownMenuLabel className="font-normal">
                                         <div className="flex flex-col space-y-2">
                                             <div className="flex items-center gap-3">
-                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <User className="h-5 w-5 text-primary" />
-                                                </div>
+                                                <UserAvatar user={user} size="md" />
                                                 <div className="flex-1">
                                                     <p className="text-sm font-semibold">{user.name}</p>
                                                     <p className="text-xs text-muted-foreground">@{user.username}</p>

@@ -46,6 +46,9 @@ interface SocketContextType {
     onMessageDeleted: (callback: (data: { messageId: number; userId: number }) => void) => () => void;
     onMessageRecalled: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
     onNotification: (callback: (data: { conversationId: number; message: Message }) => void) => () => void;
+    onConversationUpdated: (callback: (data: any) => void) => () => void;
+    onConversationNew: (callback: (data: any) => void) => () => void;
+    onConversationRemoved: (callback: (data: { id: number }) => void) => () => void;
     unreadCounts: Map<number, number>;
     totalUnread: number;
     currentUserId: number;
@@ -219,6 +222,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         return () => socket.off('message:recalled', callback);
     }, [socket]);
 
+    const onConversationUpdated = useCallback((callback: (data: any) => void) => {
+        if (!socket) return () => { };
+        socket.on('conversation:updated', callback);
+        return () => socket.off('conversation:updated', callback);
+    }, [socket]);
+
+    const onConversationNew = useCallback((callback: (data: any) => void) => {
+        if (!socket) return () => { };
+        socket.on('conversation:new', callback);
+        return () => socket.off('conversation:new', callback);
+    }, [socket]);
+
+    const onConversationRemoved = useCallback((callback: (data: { id: number }) => void) => {
+        if (!socket) return () => { };
+        socket.on('conversation:removed', callback);
+        return () => socket.off('conversation:removed', callback);
+    }, [socket]);
+
     return (
         <SocketContext.Provider value={{
             socket,
@@ -241,6 +262,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             onMessageDeleted,
             onMessageRecalled,
             onNotification,
+            onConversationUpdated,
+            onConversationNew,
+            onConversationRemoved,
             unreadCounts,
             totalUnread,
             currentUserId

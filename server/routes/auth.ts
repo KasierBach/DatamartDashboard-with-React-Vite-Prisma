@@ -28,7 +28,8 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
                         role: user.role,
                         name: user.name,
                         email: user.email,
-                        phone: user.phone
+                        phone: user.phone,
+                        avatar: user.avatar
                     }
                 });
             } else {
