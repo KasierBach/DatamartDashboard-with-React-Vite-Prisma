@@ -63,18 +63,14 @@ export function VicePrincipalDashboard(props: DashboardProps) {
     const currentAtRisk = effectiveAtRiskList.slice(atRiskStart, atRiskStart + ITEMS_PER_PAGE);
 
     // Distribution data
-    const { levelData, typeChartData } = useMemo(() => {
+    const { levelData } = useMemo(() => {
         const levels: Record<string, number> = {};
-        const types: Record<string, number> = {};
         data.forEach(d => {
             const l = d.level_name || 'N/A';
-            const t = d.type_name || 'N/A';
             levels[l] = (levels[l] || 0) + 1;
-            types[t] = (types[t] || 0) + 1;
         });
         return {
-            levelData: Object.entries(levels).map(([name, value]) => ({ name, value })),
-            typeChartData: Object.entries(types).map(([name, value]) => ({ name, value }))
+            levelData: Object.entries(levels).map(([name, value]) => ({ name, value }))
         };
     }, [data]);
 

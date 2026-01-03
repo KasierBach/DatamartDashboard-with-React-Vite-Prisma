@@ -37,7 +37,6 @@ function PrincipalDashboardComponent(props: DashboardProps) {
         avgScores,
         insights,
         passRateStats,
-        educationData,
         schools,
     } = props;
 

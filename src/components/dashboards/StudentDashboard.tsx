@@ -80,7 +80,7 @@ export function StudentDashboard(props: DashboardProps) {
                             <RadarChart cx="50%" cy="50%" outerRadius="80%" data={[
                                 { subject: 'Toán', A: student.test_math || 0, B: avgScores.math, fullMark: 10 },
                                 { subject: 'Văn', A: student.test_literature || 0, B: avgScores.reading, fullMark: 10 },
-                                { subject: 'TB', A: (student.test_math + student.test_literature) / 2 || 0, B: avgScores.average, fullMark: 10 },
+                                { subject: 'TB', A: ((student.test_math || 0) + (student.test_literature || 0)) / 2, B: avgScores.average, fullMark: 10 },
                                 { subject: 'GPA', A: student.gpa_overall || 0, B: avgScores.avg, fullMark: 10 },
                                 { subject: 'Cần cù', A: (student.attendance_rate || 0) / 10, B: avgScores.attendance / 10, fullMark: 10 },
                             ]}>
