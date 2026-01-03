@@ -16,14 +16,6 @@ import {
     Cell,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
 import { DashboardProps } from "./types"
 import { THEME_COLORS } from "./constants"
 import { groupByName, sampleData, formatOneDecimal } from "@/utils/dataUtils"
@@ -148,7 +140,7 @@ export function QATestingDashboard(props: DashboardProps) {
                 <Card>
                     <CardHeader>
                         <CardTitle>Phân tích Độ khó Môn học</CardTitle>
-                        <CardDescription>Tỷ lệ sinh viên đạt yêu cầu (>= 5.0) theo từng môn.</CardDescription>
+                        <CardDescription>Tỷ lệ sinh viên đạt yêu cầu (&gt;= 5.0) theo từng môn.</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -158,8 +150,8 @@ export function QATestingDashboard(props: DashboardProps) {
                                 <YAxis domain={[0, 100]} unit="%" />
                                 <Tooltip />
                                 <Bar dataKey="rate" name="Tỷ lệ đạt" radius={[4, 4, 0, 0]}>
-                                    {subjectDifficultyData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={index === 0 ? THEME_COLORS.math : THEME_COLORS.literature} />
+                                    {subjectDifficultyData.map((_, index) => (
+                                        <Cell key={`cell-${index}`} fill={index === 0 ? THEME_COLORS.math : THEME_COLORS.reading} />
                                     ))}
                                 </Bar>
                             </BarChart>
