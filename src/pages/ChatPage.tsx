@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import {
@@ -59,6 +59,13 @@ export function ChatPage() {
         handleFileSelect,
         handleRemoveAttachment,
     } = useChatActions({ selectedConversation });
+
+    // Manual mark as read handler for ChatWindow interaction
+    const handleWindowFocus = useCallback(() => {
+        if (selectedConversation) {
+            markConversationAsRead(selectedConversation.id);
+        }
+    }, [selectedConversation, markConversationAsRead]);
 
     // Check if user is online
     const isUserOnline = (checkUserId: number): boolean => {
@@ -137,7 +144,11 @@ export function ChatPage() {
                     isUserOnline={isUserOnline}
                     onBackClick={() => setIsMobileListView(true)}
                     onTyping={handleTyping}
-                    onSend={handleSendMessage}
+                    onFocus={handleWindowFocus}
+                    onSend={() => {
+                        handleSendMessage();
+                        if (selectedConversation) markConversationAsRead(selectedConversation.id);
+                    }}
                     onCancelEdit={handleCancelEdit}
                     onEditMessage={handleStartEdit}
                     onDeleteMessage={handleDeleteMessage}

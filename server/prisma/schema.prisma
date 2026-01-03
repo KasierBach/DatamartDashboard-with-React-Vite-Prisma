@@ -8,15 +8,14 @@ datasource db {
 }
 
 model User {
-  id       Int     @id @default(autoincrement())
-  username String  @unique
+  id       Int       @id @default(autoincrement())
+  username String    @unique
   password String
   role     String
   name     String?
   email    String?
   phone    String?
   avatar   String?
-
   messages Message[]
 
   @@map("users")
@@ -49,79 +48,137 @@ model FactScore {
   @@map("fact_scores_15dec")
 }
 
-// ==================== MESSAGING MODELS ====================
-
 model Conversation {
-  id           Int      @id @default(autoincrement())
-  type         String   @default("direct") // 'direct' or 'group'
+  id           Int                  @id @default(autoincrement())
+  type         String               @default("direct")
   name         String?
-  group_avatar String?  @map("group_avatar")
-  created_at   DateTime @default(now()) @map("created_at")
-  updated_at   DateTime @updatedAt @map("updated_at")
-
-  members  ConversationMember[]
-  messages Message[]
+  group_avatar String?              @map("group_avatar")
+  created_at   DateTime             @default(now()) @map("created_at")
+  updated_at   DateTime             @updatedAt @map("updated_at")
+  members      ConversationMember[]
+  messages     Message[]
 
   @@map("conversations")
 }
 
 model ConversationMember {
-  id              Int      @id @default(autoincrement())
-  conversation_id Int      @map("conversation_id")
-  user_id         Int      @map("user_id")
-  role            String   @default("member") // 'admin' or 'member'
-  is_hidden       Boolean  @default(false) @map("is_hidden")
-  joined_at       DateTime @default(now()) @map("joined_at")
-
-  conversation Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  id              Int          @id @default(autoincrement())
+  conversation_id Int          @map("conversation_id")
+  user_id         Int          @map("user_id")
+  role            String       @default("member")
+  is_hidden       Boolean      @default(false) @map("is_hidden")
+  joined_at       DateTime     @default(now()) @map("joined_at")
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
 
   @@unique([conversation_id, user_id])
   @@map("conversation_members")
 }
 
 model Message {
-  id              Int       @id @default(autoincrement())
-  conversation_id Int       @map("conversation_id")
-  sender_id       Int       @map("sender_id")
+  id              Int             @id @default(autoincrement())
+  conversation_id Int             @map("conversation_id")
+  sender_id       Int             @map("sender_id")
   content         String
-  created_at      DateTime  @default(now()) @map("created_at")
-  is_edited       Boolean   @default(false) @map("is_edited")
-  edited_at       DateTime? @map("edited_at")
-  is_recalled     Boolean   @default(false) @map("is_recalled")
-  attachment_url  String?   @map("attachment_url")
-  attachment_type String?   @map("attachment_type")
-
-  conversation Conversation    @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
-  sender       User            @relation(fields: [sender_id], references: [id])
-  statuses     MessageStatus[]
-  deletedFor   MessageDelete[]
+  created_at      DateTime        @default(now()) @map("created_at")
+  is_edited       Boolean         @default(false) @map("is_edited")
+  edited_at       DateTime?       @map("edited_at")
+  is_recalled     Boolean         @default(false) @map("is_recalled")
+  attachment_url  String?         @map("attachment_url")
+  attachment_type String?         @map("attachment_type")
+  deletedFor      MessageDelete[]
+  statuses        MessageStatus[]
+  conversation    Conversation    @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  sender          User            @relation(fields: [sender_id], references: [id])
 
   @@map("messages")
 }
 
-// Track who deleted message for themselves
 model MessageDelete {
   id         Int      @id @default(autoincrement())
   message_id Int      @map("message_id")
   user_id    Int      @map("user_id")
   deleted_at DateTime @default(now()) @map("deleted_at")
-
-  message Message @relation(fields: [message_id], references: [id], onDelete: Cascade)
+  message    Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
 
   @@unique([message_id, user_id])
   @@map("message_deletes")
 }
 
-// Tracking: sent -> delivered -> seen
 model MessageStatus {
   id           Int       @id @default(autoincrement())
   message_id   Int       @map("message_id")
   user_id      Int       @map("user_id")
   delivered_at DateTime? @map("delivered_at")
   seen_at      DateTime? @map("seen_at")
-
-  message Message @relation(fields: [message_id], references: [id], onDelete: Cascade)
+  message      Message   @relation(fields: [message_id], references: [id], onDelete: Cascade)
 
   @@unique([message_id, user_id])
   @@map("message_statuses")
+}
+
+model StudentDetail {
+  id                      Int     @id @default(autoincrement())
+  student_fact_id         String? @map("student_fact_id")
+  student_uid             String? @map("student_uid")
+  school_uid              String? @map("school_uid")
+  record_id               String? @map("record_id")
+  province_id             Int?    @map("province_id")
+  school_type_id          Int?    @map("school_type_id")
+  school_level_id         Int?    @map("school_level_id")
+  performance_category_id Int?    @map("performance_category_id")
+  year                    Int?    @map("year")
+  grade                   String? @map("grade")
+  gpa_overall             Float?  @map("gpa_overall")
+  attendance_rate         Float?  @map("attendance_rate")
+  test_math               Float?  @map("test_math")
+  test_literature         Float?  @map("test_literature")
+  test_average            Float?  @map("test_average")
+  composite_score         Float?  @map("composite_score")
+  school_name             String? @map("school_name")
+  province_name           String? @map("province_name")
+  level_name              String? @map("level_name")
+  type_name               String? @map("type_name")
+  school_founding_year    Int?    @map("school_founding_year")
+  school_age              Int?    @map("school_age")
+  academic_tier           String? @map("academic_tier")
+
+  @@map("student_details")
+}
+
+model ProvinceSummary {
+  id                  Int     @id @default(autoincrement())
+  province            String?
+  level               String?
+  total_students      Int?    @map("total_students")
+  total_schools       Int?    @map("total_schools")
+  avg_gpa             Float?  @map("avg_gpa")
+  avg_attendance      Float?  @map("avg_attendance")
+  avg_test_score      Float?  @map("avg_test_score")
+  avg_composite_score Float?  @map("avg_composite_score")
+  excellent_count     Int?    @map("excellent_count")
+  good_count          Int?    @map("good_count")
+  average_count       Int?    @map("average_count")
+  below_average_count Int?    @map("below_average_count")
+
+  @@map("province_summary")
+}
+
+model SchoolSummary {
+  id                  Int     @id @default(autoincrement())
+  school_id           String? @map("school_id")
+  school_name         String? @map("school_name")
+  province            String?
+  level               String?
+  type                String?
+  founding_year       Int?    @map("founding_year")
+  school_age          Int?    @map("school_age")
+  total_students      Int?    @map("total_students")
+  avg_gpa             Float?  @map("avg_gpa")
+  avg_attendance      Float?  @map("avg_attendance")
+  avg_test_math       Float?  @map("avg_test_math")
+  avg_test_literature Float?  @map("avg_test_literature")
+  avg_composite_score Float?  @map("avg_composite_score")
+  top_performer_count Int?    @map("top_performer_count")
+
+  @@map("school_summary")
 }

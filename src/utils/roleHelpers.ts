@@ -45,3 +45,10 @@ export const MANAGE_STUDENT_ROLES: Role[] = ['principal', 'vice_principal'];
 export const canManageStudents = (role: Role): boolean => {
     return MANAGE_STUDENT_ROLES.includes(role);
 };
+
+// Roles that can view summaries (Provinces/Schools)
+export const SUMMARY_VIEW_ROLES: Role[] = ['principal', 'vice_principal', 'head_dept'];
+
+export const canViewSummaries = (role: Role): boolean => {
+    return SUMMARY_VIEW_ROLES.includes(role);
+};

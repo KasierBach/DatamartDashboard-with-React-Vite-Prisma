@@ -9,6 +9,9 @@ export const API_ENDPOINTS = {
 
     // Students
     STUDENTS: `${API_BASE_URL}/api/students`,
+    STUDENT_DETAILS: `${API_BASE_URL}/api/students`, // Default to details for backward compatibility
+    STUDENT_PROVINCES: `${API_BASE_URL}/api/students/provinces`,
+    STUDENT_SCHOOLS: `${API_BASE_URL}/api/students/schools`,
 
     // Audit Logs
     AUDIT_LOGS: `${API_BASE_URL}/api/audit-logs`,

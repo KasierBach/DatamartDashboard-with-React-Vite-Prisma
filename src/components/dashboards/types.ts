@@ -1,11 +1,15 @@
-import { DataRecord } from "../../types";
+import { DataRecord, ProvinceSummaryRecord, SchoolSummaryRecord } from "../../types";
 
 export interface DashboardProps {
     data: DataRecord[];
+    provinces: ProvinceSummaryRecord[];
+    schools: SchoolSummaryRecord[];
     avgScores: {
         math: number;
         reading: number;
-        writing: number;
+        average: number;
+        avg: number;
+        attendance: number;
     };
     insights: {
         atRisk: number;
@@ -16,12 +20,17 @@ export interface DashboardProps {
     };
     scoreDistribution: any[];
     passRateStats: any[];
-    educationData: any[];
-    raceData: any[];
+    educationData: any[]; // academic_tier based
+    typeData: any[];     // type_name based
     trendData: any[];
-    ethnicityData: any[];
+    levelPerformanceData: any[]; // level_name based
     correlationData: any[];
-    atRiskDemographics: any;
+    atRiskDemographics: {
+        type: { name: string, value: number }[];
+        level: { name: string, value: number }[];
+    };
+    provincePerformance: { name: string, avg: number | null, students: number | null }[];
+    topSchools: { name: string, avg: number | null, students: number | null }[];
     facultyStats: any[];
     classStats: any[];
     teacherStats: any[];

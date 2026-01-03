@@ -11,7 +11,6 @@ import { UserAvatar } from "./UserAvatar";
 import {
     Search,
     Bell,
-    MoreHorizontal,
     Edit2,
     LogOut,
     Trash2,

@@ -84,14 +84,29 @@ export const initializeSocket = (io: Server) => {
                 });
 
                 // Notify other members (for badge updates etc)
-                members.forEach(member => {
+                for (const member of members) {
+                    // Count unread messages for this specific member
+                    const unreadCountForMember = await prisma.message.count({
+                        where: {
+                            conversation_id: data.conversationId,
+                            sender_id: { not: member.user_id },
+                            statuses: {
+                                none: {
+                                    user_id: member.user_id,
+                                    seen_at: { not: null }
+                                }
+                            }
+                        }
+                    });
+
+                    console.log(`Notifying user ${member.user_id}, unreadCount: ${unreadCountForMember}`);
+
                     // Update sidebar for everyone (including sender)
                     io.to(`user:${member.user_id}`).emit('conversation:updated', {
                         id: data.conversationId,
                         updated_at: message.created_at,
                         messages: [message],
-                        // For others, increment unread? Client side handles this usually or needs full fetch. 
-                        // For now keep it simple: just update content/time.
+                        unreadCount: unreadCountForMember // Fixed variable name consistency
                     });
 
                     if (member.user_id !== data.senderId) {
@@ -100,7 +115,7 @@ export const initializeSocket = (io: Server) => {
                             message
                         });
                     }
-                });
+                }
 
                 console.log(`Message sent in conversation ${data.conversationId}`);
             } catch (error) {

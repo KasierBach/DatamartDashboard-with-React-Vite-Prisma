@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react"
 import { useDebounce } from "@/hooks/use-debounce"
-import { DataRecord } from "../types"
 import { AddRecordDialog } from "../components/AddRecordDialog"
 import { EditRecordDialog } from "../components/EditRecordDialog"
-import { StudentTable, StudentToolbar, SortField, SortDirection } from "../components/students"
+import { StudentTable, StudentToolbar, SortField } from "../components/students"
+import { DataRecord, SortDirection } from "../types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
 interface StudentListPageProps {
@@ -31,11 +32,13 @@ export function StudentListPage({
     const [sortField, setSortField] = useState<SortField | null>(null)
     const [sortDirection, setSortDirection] = useState<SortDirection>(null)
     const [statusFilter, setStatusFilter] = useState<string>("all")
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null)
 
-    const existingIds = useMemo(() => data.map(d => d.id), [data])
+    const existingIdsSet = useMemo(() => new Set(data.map(d => d.id)), [data])
 
     // Lọc và sắp xếp dữ liệu
     const filteredAndSortedData = useMemo(() => {
@@ -43,15 +46,19 @@ export function StudentListPage({
         let result = data.filter(
             (item) =>
                 (item.id.toString().includes(lowerTerm) ||
-                    item.gender?.toLowerCase().includes(lowerTerm) ||
-                    item.race_ethnicity?.toLowerCase().includes(lowerTerm) ||
-                    item.parental_education?.toLowerCase().includes(lowerTerm) ||
-                    item.math?.toLowerCase().includes(lowerTerm) ||
-                    item.math_score?.toString().includes(lowerTerm) ||
-                    item.reading?.toLowerCase().includes(lowerTerm) ||
-                    item.reading_score?.toString().includes(lowerTerm) ||
-                    item.writing?.toLowerCase().includes(lowerTerm) ||
-                    item.writing_score?.toString().includes(lowerTerm) ||
+                    item.student_uid?.toLowerCase().includes(lowerTerm) ||
+                    item.school_name?.toLowerCase().includes(lowerTerm) ||
+                    item.province_name?.toLowerCase().includes(lowerTerm) ||
+                    item.grade?.toLowerCase().includes(lowerTerm) ||
+                    item.level_name?.toLowerCase().includes(lowerTerm) ||
+                    item.type_name?.toLowerCase().includes(lowerTerm) ||
+                    item.year?.toString().includes(lowerTerm) ||
+                    item.gpa_overall?.toString().includes(lowerTerm) ||
+                    item.attendance_rate?.toString().includes(lowerTerm) ||
+                    item.test_math?.toString().includes(lowerTerm) ||
+                    item.test_literature?.toString().includes(lowerTerm) ||
+                    item.test_average?.toString().includes(lowerTerm) ||
+                    item.composite_score?.toString().includes(lowerTerm) ||
                     item.status?.toLowerCase().includes(lowerTerm) ||
                     item.lastUpdate?.toLowerCase().includes(lowerTerm)) &&
                 (statusFilter === "all" || item.status === statusFilter)
@@ -78,7 +85,14 @@ export function StudentListPage({
         return result
     }, [data, debouncedSearchTerm, statusFilter, sortField, sortDirection])
 
+    const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage
+        return filteredAndSortedData.slice(start, start + itemsPerPage)
+    }, [filteredAndSortedData, currentPage])
+
     const handleSort = (field: SortField) => {
+        setCurrentPage(1) // Reset to first page on sort
         if (sortField === field) {
             if (sortDirection === "asc") {
                 setSortDirection("desc")
@@ -106,21 +120,22 @@ export function StudentListPage({
 
     // Xuất dữ liệu ra file CSV
     const handleExport = () => {
-        const headers = ["ID", "Gender", "Race/Ethnicity", "Parental Education", "Math Label", "Math Score", "Reading Label", "Reading Score", "Writing Label", "Writing Score", "Status", "Last Update"]
+        const headers = ["ID", "Student UID", "School", "Province", "Grade", "Level", "Type", "GPA", "Math", "Lit", "Composite", "Status", "Last Update"]
         const csvContent = [
             headers.join(","),
             ...filteredAndSortedData.map(item =>
                 [
                     item.id,
-                    item.gender || "",
-                    `"${item.race_ethnicity || ""}"`,
-                    `"${item.parental_education || ""}"`,
-                    item.math || "",
-                    item.math_score || 0,
-                    item.reading || "",
-                    item.reading_score || 0,
-                    item.writing || "",
-                    item.writing_score || 0,
+                    `"${item.student_uid || ""}"`,
+                    `"${item.school_name || ""}"`,
+                    `"${item.province_name || ""}"`,
+                    `"${item.grade || ""}"`,
+                    `"${item.level_name || ""}"`,
+                    `"${item.type_name || ""}"`,
+                    item.gpa_overall || 0,
+                    item.test_math || 0,
+                    item.test_literature || 0,
+                    item.composite_score || 0,
                     item.status,
                     item.lastUpdate
                 ].join(",")
@@ -164,9 +179,9 @@ export function StudentListPage({
                 <CardContent>
                     <StudentToolbar
                         searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
+                        onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
                         statusFilter={statusFilter}
-                        onFilterChange={setStatusFilter}
+                        onFilterChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
                         onRefresh={onRefresh}
                         onReset={onReset}
                         onExport={handleExport}
@@ -176,13 +191,38 @@ export function StudentListPage({
 
                     <div className="mt-6">
                         <StudentTable
-                            data={filteredAndSortedData}
+                            data={paginatedData}
                             sortField={sortField}
                             sortDirection={sortDirection}
                             onSort={handleSort}
                             onEdit={handleOpenEdit}
                             onDelete={onDelete}
                         />
+                    </div>
+
+                    {/* Pagination Controls */}
+                    <div className="mt-6 flex items-center justify-between border-t border-muted pt-4">
+                        <div className="text-sm text-muted-foreground">
+                            Trang {currentPage} / {totalPages || 1} (Hiển thị {paginatedData.length} / {filteredAndSortedData.length} kết quả)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Trước
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                            >
+                                Sau
+                            </Button>
+                        </div>
                     </div>
 
                     {/* Pagination Info */}
@@ -200,7 +240,7 @@ export function StudentListPage({
                 isOpen={isAddDialogOpen}
                 onOpenChange={setIsAddDialogOpen}
                 onAdd={onAdd}
-                existingIds={existingIds}
+                existingIds={existingIdsSet}
             />
 
             <EditRecordDialog
@@ -208,7 +248,7 @@ export function StudentListPage({
                 onOpenChange={setIsEditDialogOpen}
                 record={editingRecord}
                 onSave={handleSaveEdit}
-                existingIds={existingIds}
+                existingIds={existingIdsSet}
             />
         </div>
     )

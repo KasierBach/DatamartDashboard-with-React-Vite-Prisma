@@ -7,7 +7,9 @@ import { LoginPage } from "./pages/LoginPage"
 import { AuditLogPage } from "./pages/AuditLogPage"
 import { ChatPage } from "./pages/ChatPage"
 import { UsersPage } from "./pages/UsersPage"
-import { canAccessAuditLogs, canManageStudents } from "./utils/roleHelpers"
+import { ProvinceListPage } from "./pages/ProvinceListPage"
+import { SchoolListPage } from "./pages/SchoolListPage"
+import { canAccessAuditLogs, canManageStudents, canViewSummaries } from "./utils/roleHelpers"
 import { MainLayout } from "./layouts/MainLayout"
 import { useStudentData } from "./hooks/useStudentData"
 
@@ -29,6 +31,8 @@ function AppContent() {
     // Use the new hook for student data management
     const {
         data,
+        provinces,
+        schools,
         isRefreshing,
         handleRefresh,
         handleReset,
@@ -43,7 +47,11 @@ function AppContent() {
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/" element={
                     <ProtectedRoute>
-                        <DashboardPage data={data} />
+                        <DashboardPage
+                            data={data}
+                            provinces={provinces}
+                            schools={schools}
+                        />
                     </ProtectedRoute>
                 } />
                 <Route
@@ -84,6 +92,30 @@ function AppContent() {
                         <ProtectedRoute>
                             {user && user.role === 'principal' ? (
                                 <UsersPage />
+                            ) : (
+                                <Navigate to="/" replace />
+                            )}
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/provinces"
+                    element={
+                        <ProtectedRoute>
+                            {user && canViewSummaries(user.role) ? (
+                                <ProvinceListPage data={provinces} />
+                            ) : (
+                                <Navigate to="/" replace />
+                            )}
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/schools"
+                    element={
+                        <ProtectedRoute>
+                            {user && canViewSummaries(user.role) ? (
+                                <SchoolListPage data={schools} />
                             ) : (
                                 <Navigate to="/" replace />
                             )}

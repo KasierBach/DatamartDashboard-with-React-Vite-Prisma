@@ -26,10 +26,9 @@ import {
     Trash2,
     Pencil,
 } from "lucide-react"
-import { DataRecord } from "@/types"
+import { DataRecord, SortDirection } from "@/types"
 
-export type SortField = "id" | "gender" | "race_ethnicity" | "parental_education" | "math_score" | "reading_score" | "writing_score" | "status" | "lastUpdate"
-export type SortDirection = "asc" | "desc" | null
+export type SortField = "id" | "student_uid" | "school_name" | "province_name" | "grade" | "level_name" | "type_name" | "year" | "attendance_rate" | "academic_tier" | "gpa_overall" | "test_math" | "test_literature" | "test_average" | "composite_score" | "status" | "lastUpdate"
 
 interface StudentTableProps {
     data: DataRecord[]
@@ -89,26 +88,41 @@ export function StudentTable({
                         <TableHead className="w-16 cursor-pointer hover:bg-muted/50" onClick={() => onSort("id")}>
                             <div className="flex items-center">ID {getSortIcon("id")}</div>
                         </TableHead>
-                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("gender")}>
-                            <div className="flex items-center">Gender {getSortIcon("gender")}</div>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("student_uid")}>
+                            <div className="flex items-center">Mã HS {getSortIcon("student_uid")}</div>
                         </TableHead>
-                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("race_ethnicity")}>
-                            <div className="flex items-center">Race/Ethnicity {getSortIcon("race_ethnicity")}</div>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("school_name")}>
+                            <div className="flex items-center">Trường {getSortIcon("school_name")}</div>
                         </TableHead>
-                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("parental_education")}>
-                            <div className="flex items-center">Parental Edu {getSortIcon("parental_education")}</div>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("province_name")}>
+                            <div className="flex items-center">Tỉnh {getSortIcon("province_name")}</div>
                         </TableHead>
-                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("math_score")}>
-                            <div className="flex items-center justify-end">Math {getSortIcon("math_score")}</div>
+                        <TableHead className="w-20 cursor-pointer hover:bg-muted/50" onClick={() => onSort("grade")}>
+                            <div className="flex items-center">Khối {getSortIcon("grade")}</div>
                         </TableHead>
-                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("reading_score")}>
-                            <div className="flex items-center justify-end">Reading {getSortIcon("reading_score")}</div>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("level_name")}>
+                            <div className="flex items-center">Cấp {getSortIcon("level_name")}</div>
                         </TableHead>
-                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("writing_score")}>
-                            <div className="flex items-center justify-end">Writing {getSortIcon("writing_score")}</div>
+                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("type_name")}>
+                            <div className="flex items-center">Loại {getSortIcon("type_name")}</div>
                         </TableHead>
-                        <TableHead className="cursor-pointer hover:bg-muted/50" onClick={() => onSort("status")}>
-                            <div className="flex items-center">Status {getSortIcon("status")}</div>
+                        <TableHead className="w-20 cursor-pointer hover:bg-muted/50" onClick={() => onSort("year")}>
+                            <div className="flex items-center">Năm {getSortIcon("year")}</div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("attendance_rate")}>
+                            <div className="flex items-center justify-end">C.Cần {getSortIcon("attendance_rate")}</div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("gpa_overall")}>
+                            <div className="flex items-center justify-end">GPA {getSortIcon("gpa_overall")}</div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("test_math")}>
+                            <div className="flex items-center justify-end">Toán {getSortIcon("test_math")}</div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("test_literature")}>
+                            <div className="flex items-center justify-end">Văn {getSortIcon("test_literature")}</div>
+                        </TableHead>
+                        <TableHead className="text-right cursor-pointer hover:bg-muted/50" onClick={() => onSort("composite_score")}>
+                            <div className="flex items-center justify-end">TH {getSortIcon("composite_score")}</div>
                         </TableHead>
                         <TableHead className="w-24">Actions</TableHead>
                     </TableRow>
@@ -116,21 +130,29 @@ export function StudentTable({
                 <TableBody>
                     {data.length === 0 ? (
                         <TableRow>
-                            <TableCell colSpan={9} className="h-24 text-center">
+                            <TableCell colSpan={14} className="h-24 text-center">
                                 Không tìm thấy kết quả.
                             </TableCell>
                         </TableRow>
                     ) : (
                         data.map((item) => (
                             <TableRow key={item.id} className="group">
-                                <TableCell className="font-mono text-muted-foreground">{item.id}</TableCell>
-                                <TableCell>{item.gender}</TableCell>
-                                <TableCell>{item.race_ethnicity}</TableCell>
-                                <TableCell>{item.parental_education}</TableCell>
-                                <TableCell className="text-right font-medium">{item.math_score}</TableCell>
-                                <TableCell className="text-right font-medium">{item.reading_score}</TableCell>
-                                <TableCell className="text-right font-medium">{item.writing_score}</TableCell>
-                                <TableCell>{getStatusBadge(item.status)}</TableCell>
+                                <TableCell className="font-mono text-[10px] text-muted-foreground">{item.id}</TableCell>
+                                <TableCell className="font-mono text-xs font-semibold">{item.student_uid || 'N/A'}</TableCell>
+                                <TableCell className="max-w-[120px] truncate text-xs">{item.school_name || 'N/A'}</TableCell>
+                                <TableCell className="text-xs">{item.province_name || 'N/A'}</TableCell>
+                                <TableCell className="text-xs font-bold">{item.grade || 'N/A'}</TableCell>
+                                <TableCell className="text-[10px] uppercase">{item.level_name || 'N/A'}</TableCell>
+                                <TableCell className="text-[10px] whitespace-nowrap">{item.type_name || 'N/A'}</TableCell>
+                                <TableCell className="text-xs">{item.year || 'N/A'}</TableCell>
+                                <TableCell className="text-right text-xs font-medium text-amber-600">
+                                    {item.attendance_rate ? `${(item.attendance_rate * 100).toFixed(1)}%` : '0%'}
+                                </TableCell>
+                                <TableCell className="text-right font-bold text-blue-600">{(item.gpa_overall || 0).toFixed(1)}</TableCell>
+                                <TableCell className="text-right font-medium text-xs">{(item.test_math || 0).toFixed(1)}</TableCell>
+                                <TableCell className="text-right font-medium text-xs">{(item.test_literature || 0).toFixed(1)}</TableCell>
+                                <TableCell className="text-right font-bold text-emerald-600">{(item.composite_score || 0).toFixed(2)}</TableCell>
+                                <TableCell>{getStatusBadge(item.status || 'active')}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-1">
                                         <Button

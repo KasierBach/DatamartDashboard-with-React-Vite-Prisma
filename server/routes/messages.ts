@@ -382,6 +382,8 @@ router.put('/conversations/:id/read', async (req: Request, res: Response) => {
             return res.status(400).json({ error: 'userId is required' });
         }
 
+        console.log('MARKING AS READ:', { conversationId, userId });
+
         // Find all unread messages from others
         const unreadMessages = await prisma.message.findMany({
             where: {
@@ -416,6 +418,25 @@ router.put('/conversations/:id/read', async (req: Request, res: Response) => {
                 }
             })
         ));
+
+        // NOTIFY VIA SOCKET
+        const io = (req as any).io;
+        if (io) {
+            // Notify sender(s) that their messages were seen
+            unreadMessages.forEach(msg => {
+                io.to(`user:${msg.sender_id}`).emit('message:status', {
+                    messageId: msg.id,
+                    status: 'seen',
+                    userId: userId
+                });
+            });
+
+            // Update sidebar for current user to clear badge
+            io.to(`user:${userId}`).emit('conversation:updated', {
+                id: conversationId,
+                unreadCount: 0
+            });
+        }
 
         res.json({ success: true, count: unreadMessages.length });
     } catch (error) {

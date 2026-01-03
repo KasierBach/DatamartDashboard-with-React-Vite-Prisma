@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
 // Importing App-specific types might be circular if not careful. For now, local types.
 
 import { Role } from "../types";
@@ -78,8 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('user', JSON.stringify(updatedUser));
     };
 
+    const contextValue = useMemo(() => ({
+        user,
+        login,
+        logout,
+        updateUser,
+        isLoading
+    }), [user, isLoading]);
+
     return (
-        <AuthContext.Provider value={{ user, login, logout, updateUser, isLoading }}>
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     );

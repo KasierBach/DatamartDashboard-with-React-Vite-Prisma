@@ -11,6 +11,7 @@ interface ChatInputProps {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onSend: () => void;
     onCancelEdit: () => void;
+    onFocus?: () => void;
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
@@ -23,6 +24,7 @@ export function ChatInput({
     onChange,
     onSend,
     onCancelEdit,
+    onFocus,
     attachment,
     onFileSelect,
     onRemoveAttachment,
@@ -77,6 +79,7 @@ export function ChatInput({
                     placeholder={editingMessage ? 'Chỉnh sửa tin nhắn...' : 'Nhập tin nhắn...'}
                     value={value}
                     onChange={onChange}
+                    onFocus={onFocus}
                     className="flex-1"
                 />
                 <Button type="submit" size="icon" disabled={!value.trim() && !attachment}>

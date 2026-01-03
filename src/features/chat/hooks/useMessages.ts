@@ -37,13 +37,6 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
             if (res.ok) {
                 const data = await res.json();
                 setMessages(data);
-
-                // Mark messages as seen
-                data.forEach((msg: Message) => {
-                    if (msg.sender_id !== userId) {
-                        markAsSeen(msg.id);
-                    }
-                });
             }
         } catch (error) {
             console.error('Error loading messages:', error);
@@ -51,13 +44,19 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
     }, [userId, markAsSeen]);
 
     // Socket event listeners
+    const selectedConversationId = selectedConversation?.id;
+    const selectedConversationIdRef = useRef(selectedConversationId);
+
+    useEffect(() => {
+        selectedConversationIdRef.current = selectedConversationId;
+    }, [selectedConversationId]);
+
     useEffect(() => {
         const unsubNewMessage = onNewMessage((message) => {
-            if (selectedConversation && message.conversation_id === selectedConversation.id) {
+            if (selectedConversationIdRef.current === message.conversation_id) {
                 setMessages(prev => [...prev, message]);
-                if (message.sender_id !== userId) {
-                    markAsSeen(message.id);
-                }
+                // REMOVED: Aggressive auto-seen. 
+                // Now handled by explicit user interaction (click/focus/type).
             }
         });
 
@@ -83,9 +82,11 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         });
 
         const unsubEdited = onMessageEdited((updatedMessage) => {
-            setMessages(prev => prev.map(msg =>
-                msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
-            ));
+            if (selectedConversationIdRef.current === updatedMessage.conversation_id) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === updatedMessage.id ? { ...msg, ...updatedMessage } : msg
+                ));
+            }
         });
 
         const unsubDeleted = onMessageDeleted((data) => {
@@ -93,9 +94,11 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         });
 
         const unsubRecalled = onMessageRecalled((data) => {
-            setMessages(prev => prev.map(msg =>
-                msg.id === data.messageId ? { ...msg, is_recalled: true, content: '' } : msg
-            ));
+            if (selectedConversationIdRef.current === data.conversationId) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === data.messageId ? { ...msg, is_recalled: true, content: '' } : msg
+                ));
+            }
         });
 
         return () => {
@@ -105,16 +108,16 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
             unsubDeleted();
             unsubRecalled();
         };
-    }, [onNewMessage, onMessageStatus, onMessageEdited, onMessageDeleted, onMessageRecalled, selectedConversation, userId, markAsSeen]);
+    }, [onNewMessage, onMessageStatus, onMessageEdited, onMessageDeleted, onMessageRecalled, userId, markAsSeen]);
 
     // Join/leave conversation room
     useEffect(() => {
-        if (selectedConversation) {
-            joinConversation(selectedConversation.id);
-            loadMessages(selectedConversation.id);
-            return () => leaveConversation(selectedConversation.id);
+        if (selectedConversationId) {
+            joinConversation(selectedConversationId);
+            loadMessages(selectedConversationId);
+            return () => leaveConversation(selectedConversationId);
         }
-    }, [selectedConversation, joinConversation, leaveConversation, loadMessages]);
+    }, [selectedConversationId, joinConversation, leaveConversation, loadMessages]);
 
     // Scroll to bottom
     useEffect(() => {

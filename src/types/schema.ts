@@ -11,6 +11,8 @@ export interface User {
     name?: string;
     email?: string;
     phone?: string;
+    avatar?: string;
+    messages: any[];
 }
 
 export interface AuditLog {
@@ -34,5 +36,121 @@ export interface FactScore {
     reading_score?: number;
     writing?: string;
     writing_score?: number;
+}
+
+export interface Conversation {
+    id: number;
+    type: string;
+    name?: string;
+    group_avatar?: string;
+    created_at: string;
+    updated_at: string;
+    members: any[];
+    messages: any[];
+}
+
+export interface ConversationMember {
+    id: number;
+    conversation_id: number;
+    user_id: number;
+    role: string;
+    is_hidden: boolean;
+    joined_at: string;
+    conversation: any;
+}
+
+export interface Message {
+    id: number;
+    conversation_id: number;
+    sender_id: number;
+    content: string;
+    created_at: string;
+    is_edited: boolean;
+    edited_at?: string;
+    is_recalled: boolean;
+    attachment_url?: string;
+    attachment_type?: string;
+    conversation: any;
+    sender: any;
+    statuses: any[];
+    deletedFor: any[];
+}
+
+export interface MessageDelete {
+    id: number;
+    message_id: number;
+    user_id: number;
+    deleted_at: string;
+    message: any;
+}
+
+export interface MessageStatus {
+    id: number;
+    message_id: number;
+    user_id: number;
+    delivered_at?: string;
+    seen_at?: string;
+    message: any;
+}
+
+export interface StudentDetail {
+    id: number;
+    student_fact_id?: string;
+    student_uid?: string;
+    school_uid?: string;
+    record_id?: string;
+    province_id?: number;
+    school_type_id?: number;
+    school_level_id?: number;
+    performance_category_id?: number;
+    year?: number;
+    grade?: string;
+    gpa_overall?: number;
+    attendance_rate?: number;
+    test_math?: number;
+    test_literature?: number;
+    test_average?: number;
+    composite_score?: number;
+    school_name?: string;
+    province_name?: string;
+    level_name?: string;
+    type_name?: string;
+    school_founding_year?: number;
+    school_age?: number;
+    academic_tier?: string;
+}
+
+export interface ProvinceSummary {
+    id: number;
+    province?: string;
+    level?: string;
+    total_students?: number;
+    total_schools?: number;
+    avg_gpa?: number;
+    avg_attendance?: number;
+    avg_test_score?: number;
+    avg_composite_score?: number;
+    excellent_count?: number;
+    good_count?: number;
+    average_count?: number;
+    below_average_count?: number;
+}
+
+export interface SchoolSummary {
+    id: number;
+    school_id?: string;
+    school_name?: string;
+    province?: string;
+    level?: string;
+    type?: string;
+    founding_year?: number;
+    school_age?: number;
+    total_students?: number;
+    avg_gpa?: number;
+    avg_attendance?: number;
+    avg_test_math?: number;
+    avg_test_literature?: number;
+    avg_composite_score?: number;
+    top_performer_count?: number;
 }
 

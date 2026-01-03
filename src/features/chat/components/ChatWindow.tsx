@@ -25,6 +25,7 @@ interface ChatWindowProps {
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
+    onFocus?: () => void;
     onInfoClick?: () => void;
 }
 
@@ -48,6 +49,7 @@ export function ChatWindow({
     attachment,
     onFileSelect,
     onRemoveAttachment,
+    onFocus,
     onInfoClick,
 }: ChatWindowProps) {
     if (!conversation) {
@@ -68,10 +70,13 @@ export function ChatWindow({
     }
 
     return (
-        <div className={cn(
-            'flex-1 flex flex-col',
-            isMobileListView && 'hidden md:flex'
-        )}>
+        <div
+            className={cn(
+                'flex-1 flex flex-col',
+                isMobileListView && 'hidden md:flex'
+            )}
+            onClick={onFocus}
+        >
             <ChatHeader
                 conversation={conversation}
                 currentUserId={currentUserId}
@@ -97,6 +102,7 @@ export function ChatWindow({
                 onChange={onTyping}
                 onSend={onSend}
                 onCancelEdit={onCancelEdit}
+                onFocus={onFocus}
                 attachment={attachment}
                 onFileSelect={onFileSelect}
                 onRemoveAttachment={onRemoveAttachment}

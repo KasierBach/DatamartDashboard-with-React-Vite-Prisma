@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSocket } from '@/context/SocketContext';
 import { API_ENDPOINTS } from '@/config/api';
 import type { Conversation, User } from '../types';
@@ -38,16 +38,41 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
     const [isMobileListView, setIsMobileListView] = useState(true);
     const { onConversationUpdated, onConversationNew, onConversationRemoved } = useSocket();
 
+    // Use ref to keep track of selected conversation inside persistent socket listeners
+    const selectedConversationIdRef = useRef(selectedConversation?.id);
+    useEffect(() => {
+        selectedConversationIdRef.current = selectedConversation?.id;
+    }, [selectedConversation?.id]);
+
     // Listen for conversation updates
     useEffect(() => {
         const removeUpdateListener = onConversationUpdated((updatedConv) => {
-            setConversations(prev => prev.map(c =>
-                c.id === updatedConv.id ? { ...c, ...updatedConv } : c
-            ));
+            setConversations(prev => {
+                const existingIndex = prev.findIndex(c => c.id === updatedConv.id);
+                if (existingIndex > -1) {
+                    const existing = prev[existingIndex];
+                    const updated = {
+                        ...existing,
+                        ...updatedConv,
+                        unreadCount: updatedConv.unreadCount !== undefined ? updatedConv.unreadCount : existing.unreadCount
+                    };
+                    // Move to top: removal + unshift
+                    const remaining = prev.filter(c => c.id !== updatedConv.id);
+                    return [updated, ...remaining];
+                }
+                return prev;
+            });
 
             // Also update selected conversation if it matches
-            if (selectedConversation?.id === updatedConv.id) {
-                setSelectedConversation(prev => prev ? { ...prev, ...updatedConv } : null);
+            if (selectedConversationIdRef.current === updatedConv.id) {
+                setSelectedConversation(prev => {
+                    if (!prev) return null;
+                    return {
+                        ...prev,
+                        ...updatedConv,
+                        unreadCount: updatedConv.unreadCount !== undefined ? updatedConv.unreadCount : prev.unreadCount
+                    };
+                });
             }
         });
 
@@ -60,7 +85,7 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
 
         const removeRemoveListener = onConversationRemoved(({ id }) => {
             setConversations(prev => prev.filter(c => c.id !== id));
-            if (selectedConversation?.id === id) {
+            if (selectedConversationIdRef.current === id) {
                 setSelectedConversation(null);
             }
         });
@@ -70,7 +95,7 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
             removeNewListener();
             removeRemoveListener();
         };
-    }, [onConversationUpdated, onConversationNew, onConversationRemoved, selectedConversation]);
+    }, [onConversationUpdated, onConversationNew, onConversationRemoved]);
 
     // Load conversations
     const loadConversations = useCallback(async () => {

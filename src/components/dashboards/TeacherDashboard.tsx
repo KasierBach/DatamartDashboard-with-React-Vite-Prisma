@@ -1,17 +1,21 @@
-import { Target, Trophy } from 'lucide-react'
+import { Target } from 'lucide-react'
+import { useMemo } from 'react'
 import {
-    BarChart,
     Bar,
+    BarChart,
     XAxis,
     YAxis,
     CartesianGrid,
     Tooltip,
     Legend,
     ResponsiveContainer,
-    LineChart,
-    Line,
+    ScatterChart,
+    Scatter,
+    Cell,
+    ReferenceLine,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
     Table,
     TableBody,
@@ -22,55 +26,166 @@ import {
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
 import { THEME_COLORS } from "./constants"
+import { sampleData, formatOneDecimal } from "@/utils/dataUtils"
 
 export function TeacherDashboard(props: DashboardProps) {
     const {
         data,
         avgScores,
         insights,
-        scoreDistribution
+        scoreDistribution,
+        educationData,
     } = props;
+
+    // Fallback logic for At Risk List
+    const effectiveAtRiskList = useMemo(() => {
+        return insights.atRiskList.length > 0
+            ? insights.atRiskList
+            : data.filter(d => (d.test_math || 0) < 5.0 || (d.test_literature || 0) < 5.0).slice(0, 10);
+    }, [data, insights.atRiskList]);
+
+    const scatterData = useMemo(() => {
+        return sampleData(data, 400).map(d => ({
+            attendance: d.attendance_rate || 0,
+            gpa: d.gpa_overall || 0,
+            name: `HS ${d.student_uid}`
+        }));
+    }, [data]);
+
+    // High Effort, Low Results
+    const focusList = useMemo(() => {
+        return data
+            .filter(d => (d.attendance_rate || 0) >= 90 && (d.gpa_overall || 0) < 6.5)
+            .sort((a, b) => (a.gpa_overall || 0) - (b.gpa_overall || 0))
+            .slice(0, 5);
+    }, [data]);
+
+    // Quality Matrix: Test Score vs GPA
+    const qualityMatrixData = useMemo(() => {
+        return sampleData(data, 250).map(d => ({
+            test: d.test_average || ((d.test_math || 0) + (d.test_literature || 0)) / 2,
+            gpa: d.gpa_overall || 0,
+            name: `HS ${d.student_uid}`
+        }));
+    }, [data]);
+
     return (
         <div className="space-y-6">
-            {/* Teacher Insight */}
             <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 bg-green-50 border border-green-200 p-4 rounded-lg flex items-start">
-                    <Target className="h-5 w-5 text-green-600 mt-1 mr-2" />
+                <div className="flex-1 bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-start">
+                    <Target className="h-5 w-5 text-blue-600 mt-1 mr-2" />
                     <div>
-                        <h3 className="font-bold text-green-800">Mục tiêu tuần tới</h3>
-                        <ul className="list-disc list-inside text-sm text-green-700 mt-2 space-y-1">
-                            <li>Kèm cặp {insights.atRiskList.length} học sinh có học lực yếu.</li>
-                            <li>Tổ chức ôn tập cho nhóm môn {insights.lowestSubject.subject} (TB thấp nhất: {insights.lowestSubject.score}).</li>
-                        </ul>
-                    </div>
-                </div>
-                <div className="flex-1 bg-yellow-50 border border-yellow-200 p-4 rounded-lg flex items-start">
-                    <Trophy className="h-5 w-5 text-yellow-600 mt-1 mr-2" />
-                    <div>
-                        <h3 className="font-bold text-yellow-800">Khen thưởng</h3>
-                        <p className="text-sm text-yellow-700 mt-2">
-                            Đề xuất tuyên dương <strong>{insights.topList.length}</strong> học sinh có thành tích xuất sắc trong buổi sinh hoạt lớp.
+                        <h3 className="font-bold text-blue-800">Tương quan Chuyên cần & Điểm số</h3>
+                        <p className="text-sm text-blue-700 mt-2">
+                            Biểu đồ dưới đây giúp thầy/cô nhận diện học sinh có điểm thấp do nghỉ học nhiều (góc dưới bên trái).
                         </p>
                     </div>
                 </div>
             </div>
 
-            <div className="grid gap-4 md:grid-cols-4">
+            <Card className="col-span-full">
+                <CardHeader>
+                    <CardTitle>Phân tích Tác động của Chuyên cần đến Kết quả học tập</CardTitle>
+                    <CardDescription>Mỗi điểm tròn đại diện cho một học sinh. Trục tung: Điểm TB, Trục hoành: Tỷ lệ Chuyên cần.</CardDescription>
+                </CardHeader>
+                <CardContent className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                            <CartesianGrid />
+                            <XAxis type="number" dataKey="attendance" name="Chuyên cần" unit="%" domain={[0, 100]} label={{ value: 'Tỷ lệ đi học (%)', position: 'insideBottom', offset: -10 }} />
+                            <YAxis type="number" dataKey="gpa" name="Điểm TB" unit="" domain={[0, 10]} label={{ value: 'Điểm Trung bình', angle: -90, position: 'insideLeft' }} />
+                            <Tooltip cursor={{ strokeDasharray: '3 3' }} content={({ active, payload }: any) => {
+                                if (active && payload && payload.length) {
+                                    const d = payload[0].payload;
+                                    return (
+                                        <div className="bg-white p-2 border rounded shadow-sm text-sm">
+                                            <p className="font-bold">{d.name}</p>
+                                            <p>GPA: {formatOneDecimal(d.gpa)}</p>
+                                            <p>Chuyên cần: {d.attendance}%</p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            }} />
+                            <Scatter name="Học sinh" data={scatterData} fill="#8884d8">
+                                {scatterData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={(entry.attendance || 0) < 80 ? '#ef4444' : (entry.gpa || 0) < 5.0 ? '#f59e0b' : '#3b82f6'} />
+                                ))}
+                            </Scatter>
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+
+            <div className="grid gap-6 md:grid-cols-2">
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Sĩ số lớp</CardTitle></CardHeader>
-                    <CardContent><div className="text-3xl font-bold">{data.length}</div><p className="text-xs text-muted-foreground">Vắng: 0</p></CardContent>
+                    <CardHeader>
+                        <CardTitle>Ma trận Chất lượng (Test vs GPA)</CardTitle>
+                        <CardDescription>So sánh Điểm thi (trục hoành) và GPA (trục tung) để đánh giá độ lệch.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid />
+                                <XAxis type="number" dataKey="test" name="Điểm Thi" unit="" domain={[0, 10]} label={{ value: 'Điểm Thi TB', position: 'insideBottom', offset: -10 }} />
+                                <YAxis type="number" dataKey="gpa" name="GPA" unit="" domain={[0, 10]} label={{ value: 'Điểm GPA', angle: -90, position: 'insideLeft' }} />
+                                <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                <Legend />
+                                <ReferenceLine x={5} stroke="red" strokeDasharray="3 3" />
+                                <ReferenceLine y={5} stroke="red" strokeDasharray="3 3" />
+                                <Scatter name="Học sinh" data={qualityMatrixData} fill="#8884d8">
+                                    {qualityMatrixData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.gpa > entry.test + 1.5 ? '#f59e0b' : entry.gpa < entry.test - 1.5 ? '#ef4444' : '#22c55e'} />
+                                    ))}
+                                </Scatter>
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Cần quan tâm đặc biệt (Nỗ lực cao - KQ thấp)</CardTitle>
+                        <CardDescription>HS đi học đầy đủ (&gt;90%) nhưng kết quả còn thấp (&lt;6.5).</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader><TableRow><TableHead>Mã HS</TableHead><TableHead>Chuyên cần</TableHead><TableHead>GPA</TableHead><TableHead>Đánh giá</TableHead></TableRow></TableHeader>
+                            <TableBody>
+                                {focusList.length > 0 ? focusList.map((s) => (
+                                    <TableRow key={s.student_uid}>
+                                        <TableCell>{s.student_uid}</TableCell>
+                                        <TableCell className="text-green-600 font-bold">{s.attendance_rate}%</TableCell>
+                                        <TableCell className="text-yellow-600 font-bold">{formatOneDecimal(s.gpa_overall)}</TableCell>
+                                        <TableCell><Badge variant="outline" className="text-yellow-600 border-yellow-600">Cần đổi mới PP</Badge></TableCell>
+                                    </TableRow>
+                                )) : <TableRow><TableCell colSpan={4} className="text-center">Không có học sinh trong nhóm này</TableCell></TableRow>}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-5">
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Tổng số HS</CardTitle></CardHeader>
+                    <CardContent><div className="text-3xl font-bold">{data.length.toLocaleString()}</div><p className="text-xs text-muted-foreground">Trong hệ thống</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Điểm TB Lớp</CardTitle></CardHeader>
-                    <CardContent><div className="text-3xl font-bold text-blue-600">{Math.round((avgScores.math + avgScores.reading + avgScores.writing) / 3)}</div><p className="text-xs text-muted-foreground">Xếp hạng: 2/15</p></CardContent>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Điểm TB</CardTitle></CardHeader>
+                    <CardContent><div className="text-3xl font-bold text-blue-600">{formatOneDecimal(avgScores.avg)}</div><p className="text-xs text-muted-foreground">Toán: {avgScores.math} | Văn: {avgScores.reading}</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Nộp bài tập</CardTitle></CardHeader>
-                    <CardContent><div className="text-3xl font-bold text-green-600">98%</div><p className="text-xs text-muted-foreground">Đã thu đủ</p></CardContent>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Chuyên cần</CardTitle></CardHeader>
+                    <CardContent><div className="text-3xl font-bold text-cyan-600">{avgScores.attendance}%</div><p className="text-xs text-muted-foreground">Tỷ lệ đi học TB</p></CardContent>
                 </Card>
                 <Card>
-                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Yếu/Kém</CardTitle></CardHeader>
-                    <CardContent><div className="text-3xl font-bold text-red-600">{insights.atRisk}</div><p className="text-xs text-muted-foreground">Cần phụ đạo</p></CardContent>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">HS Xuất sắc</CardTitle></CardHeader>
+                    <CardContent><div className="text-3xl font-bold text-green-600">{insights.topPerformers}</div><p className="text-xs text-muted-foreground">GPA &gt;= 8.5</p></CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Cần hỗ trợ</CardTitle></CardHeader>
+                    <CardContent><div className="text-3xl font-bold text-red-600">{effectiveAtRiskList.length}</div><p className="text-xs text-muted-foreground">Điểm dưới chuẩn</p></CardContent>
                 </Card>
             </div>
 
@@ -83,13 +198,10 @@ export function TeacherDashboard(props: DashboardProps) {
                     <CardContent className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart data={scoreDistribution}>
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Legend />
-                                <Bar dataKey="Math" fill={THEME_COLORS.math} stackId="a" name="Toán" />
-                                <Bar dataKey="Reading" fill={THEME_COLORS.reading} stackId="a" name="Đọc" />
-                                <Bar dataKey="Writing" fill={THEME_COLORS.writing} stackId="a" name="Viết" />
+                                <XAxis dataKey="name" /><YAxis /><Tooltip /><Legend />
+                                <Bar dataKey="Math" name="Toán" fill={THEME_COLORS.math} radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Reading" name="Văn" fill={THEME_COLORS.reading} radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Average" name="Điểm TB" fill={THEME_COLORS.writing} radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
@@ -97,48 +209,36 @@ export function TeacherDashboard(props: DashboardProps) {
 
                 <Card>
                     <CardHeader>
-                        <CardTitle>Tiến độ học tập (Mô phỏng)</CardTitle>
-                        <CardDescription>So sánh điểm kiểm tra 15p, 1 tiết và Cuối kỳ.</CardDescription>
+                        <CardTitle>Hiệu suất theo Phân hạng Học thuật</CardTitle>
+                        <CardDescription>So sánh điểm giữa các nhóm Academic Tier.</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={[
-                                { name: 'Tuần 1', score: 70 },
-                                { name: 'Tuần 2', score: 72 },
-                                { name: 'Tuần 3', score: 68 },
-                                { name: 'Tuần 4', score: 75 },
-                                { name: 'Tuần 5', score: 78 },
-                                { name: 'GK', score: 82 },
-                            ]}>
+                            <BarChart data={educationData}>
                                 <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis dataKey="name" />
-                                <YAxis />
-                                <Tooltip />
-                                <Line type="monotone" dataKey="score" stroke="#8884d8" strokeWidth={2} name="TB Lớp" />
-                            </LineChart>
+                                <XAxis dataKey="name" /><YAxis domain={[0, 10]} /><Tooltip /><Legend />
+                                <Bar dataKey="Math" name="Toán" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Reading" name="Văn" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
             </div>
 
             <Card>
-                <CardHeader>
-                    <CardTitle>Danh sách Học sinh cần lưu ý</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle>Danh sách Học sinh cần lưu ý</CardTitle></CardHeader>
                 <CardContent>
                     <Table>
-                        <TableHeader><TableRow><TableHead>ID</TableHead><TableHead>Họ tên (Mã)</TableHead><TableHead>Toán</TableHead><TableHead>Đọc</TableHead><TableHead>Viết</TableHead><TableHead>Ghi chú</TableHead></TableRow></TableHeader>
+                        <TableHeader><TableRow><TableHead>Mã SV</TableHead><TableHead>Phân hạng</TableHead><TableHead>Toán</TableHead><TableHead>Văn</TableHead><TableHead>Điểm TB</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
                         <TableBody>
-                            {insights.atRiskList.slice(0, 8).map((s) => (
-                                <TableRow key={s.id}>
-                                    <TableCell className="font-medium">{s.id}</TableCell>
-                                    <TableCell>Học sinh {s.id}</TableCell>
-                                    <TableCell className={s.math_score < 50 ? "text-red-500 font-bold bg-red-50" : ""}>{s.math_score}</TableCell>
-                                    <TableCell className={s.reading_score < 50 ? "text-red-500 font-bold bg-red-50" : ""}>{s.reading_score}</TableCell>
-                                    <TableCell className={s.writing_score < 50 ? "text-red-500 font-bold bg-red-50" : ""}>{s.writing_score}</TableCell>
-                                    <TableCell className="text-sm italic text-gray-500">
-                                        {s.math_score < 50 ? 'Mất gốc Toán' : 'Kỹ năng đọc yếu'}
-                                    </TableCell>
+                            {effectiveAtRiskList.slice(0, 5).map((student: any) => (
+                                <TableRow key={student.student_uid || student.id}>
+                                    <TableCell className="font-medium">{student.student_uid}</TableCell>
+                                    <TableCell>{student.academic_tier}</TableCell>
+                                    <TableCell className={(student.test_math || 0) < 5.0 ? "text-red-500 font-bold bg-red-50" : ""}>{student.test_math || 0}</TableCell>
+                                    <TableCell className={(student.test_literature || 0) < 5.0 ? "text-red-500 font-bold bg-red-50" : ""}>{student.test_literature || 0}</TableCell>
+                                    <TableCell className={(student.test_average || 0) < 5.0 ? "text-red-500 font-bold bg-red-50" : ""}>{formatOneDecimal(student.test_average || ((student.test_math || 0) + (student.test_literature || 0)) / 2)}</TableCell>
+                                    <TableCell><span className="text-red-500 font-bold">Rủi ro</span></TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

@@ -1,20 +1,19 @@
-import { FactScore } from './schema';
+import { StudentDetail, ProvinceSummary, SchoolSummary } from './schema';
+
+export type { StudentDetail, ProvinceSummary, SchoolSummary };
 
 export type Role = 'principal' | 'vice_principal' | 'head_dept' | 'teacher' | 'academic_affairs' | 'qa_testing' | 'student_affairs' | 'student' | 'no_role';
 
-export interface DataRecord extends FactScore {
-    // Fields not in DB but used in UI
-    status: "active" | "inactive" | "pending";
-    lastUpdate: string;
+export interface DataRecord extends StudentDetail {
+    // Fields for UI state and compatibility
+    status?: "active" | "inactive" | "pending" | string;
+    lastUpdate?: string;
 
-    // Override optional fields from FactScore to be required as per UI requirements
-    gender: string;
-    race_ethnicity: string;
-    parental_education: string;
-    math: string;
-    math_score: number;
-    reading: string;
-    reading_score: number;
-    writing: string;
-    writing_score: number;
+    // Computed or extra fields if needed for specific logic
+    // (Attendance rate is already in StudentDetail)
 }
+
+export type SortDirection = "asc" | "desc" | null;
+
+export interface ProvinceSummaryRecord extends ProvinceSummary { }
+export interface SchoolSummaryRecord extends SchoolSummary { }

@@ -1,12 +1,14 @@
-import { DataRecord } from "../types"
+import { DataRecord, ProvinceSummaryRecord, SchoolSummaryRecord } from "../types"
 import { DashboardCharts } from "../components/DashboardCharts"
 import { useAuth } from "../context/AuthContext"
 
 interface DashboardPageProps {
     data: DataRecord[]
+    provinces: ProvinceSummaryRecord[]
+    schools: SchoolSummaryRecord[]
 }
 
-export function DashboardPage({ data }: DashboardPageProps) {
+export function DashboardPage({ data, provinces, schools }: DashboardPageProps) {
     const { user } = useAuth()
     const role = user?.role || 'principal' // Default fallback for dev
 
@@ -25,7 +27,12 @@ export function DashboardPage({ data }: DashboardPageProps) {
             </div>
 
             {/* Charts Section */}
-            <DashboardCharts data={data} role={role} />
+            <DashboardCharts
+                data={data}
+                provinces={provinces}
+                schools={schools}
+                role={role}
+            />
         </div>
     )
 }

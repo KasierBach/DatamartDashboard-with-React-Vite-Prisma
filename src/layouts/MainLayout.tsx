@@ -1,9 +1,9 @@
 import { useState } from "react"
 import { Link, useLocation } from "react-router-dom"
 import { ThemeToggle } from "@/components/ui/theme-toggle"
-import { LayoutDashboard, Users, GraduationCap, LogOut, User, ChevronDown, Mail, Phone, History, Shield, Settings, MessageCircle } from "lucide-react"
+import { LayoutDashboard, Users, GraduationCap, LogOut, ChevronDown, Mail, Phone, History, Shield, Settings, MessageCircle, Map, School } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import { getRoleDisplayName, getRoleBadgeColor, canAccessAuditLogs, canManageStudents } from "@/utils/roleHelpers"
+import { getRoleDisplayName, getRoleBadgeColor, canAccessAuditLogs, canManageStudents, canViewSummaries } from "@/utils/roleHelpers"
 import { ProfileDialog } from "@/components/ProfileDialog"
 import { UserAvatar } from "@/features/chat/components/UserAvatar"
 import {
@@ -49,17 +49,23 @@ export function MainLayout({ children }: MainLayoutProps) {
             {/* Navbar */}
             {user && (
                 <header className="border-b bg-card">
-                    <div className="mx-auto max-w-7xl px-4 md:px-8 h-16 flex items-center justify-between">
-                        <div className="flex items-center gap-8">
-                            <div className="flex items-center gap-2 font-bold text-xl">
-                                <GraduationCap className="h-6 w-6 text-primary" />
+                    <div className="mx-auto max-w-[1440px] h-16 flex items-center justify-between px-4 md:px-12">
+                        <div className="flex items-center gap-6">
+                            <div className="flex items-center gap-2 font-bold text-xl whitespace-nowrap py-2">
+                                <GraduationCap className="h-6 w-6 text-primary shrink-0" />
                                 <span>Student's Datamart</span>
                             </div>
 
-                            <nav className="hidden md:flex items-center gap-2">
+                            <nav className="hidden md:flex items-center gap-2 h-full">
                                 <NavLink to="/" icon={LayoutDashboard}>Dashboard</NavLink>
                                 {canManageStudents(user.role) && (
                                     <NavLink to="/students" icon={Users}>Students</NavLink>
+                                )}
+                                {canViewSummaries(user.role) && (
+                                    <>
+                                        <NavLink to="/provinces" icon={Map}>Provinces</NavLink>
+                                        <NavLink to="/schools" icon={School}>Schools</NavLink>
+                                    </>
                                 )}
                                 {canAccessAuditLogs(user.role) && (
                                     <NavLink to="/audit-logs" icon={History}>Logs</NavLink>
@@ -144,8 +150,8 @@ export function MainLayout({ children }: MainLayoutProps) {
             )}
 
             {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8">
-                <div className="mx-auto max-w-7xl">
+            <main className="flex-1 py-4 md:py-8">
+                <div className="mx-auto max-w-[1440px] px-4 md:px-12">
                     {children}
                 </div>
             </main>

@@ -12,7 +12,7 @@ interface EditRecordDialogProps {
     onOpenChange: (open: boolean) => void
     record: DataRecord | null
     onSave: (record: DataRecord) => void
-    existingIds: number[]
+    existingIds: Set<number>
 }
 
 export function EditRecordDialog({ isOpen, onOpenChange, record, onSave, existingIds }: EditRecordDialogProps) {
@@ -25,8 +25,8 @@ export function EditRecordDialog({ isOpen, onOpenChange, record, onSave, existin
     const handleSaveEdit = () => {
         if (!editingRecord) return
 
-        if (!editingRecord.id || !editingRecord.gender || !editingRecord.race_ethnicity) {
-            toast.error("Vui lòng điền đầy đủ thông tin!")
+        if (!editingRecord.id || !editingRecord.school_name) {
+            toast.error("Vui lòng nhập các thông tin bắt buộc!")
             return
         }
 
@@ -34,7 +34,7 @@ export function EditRecordDialog({ isOpen, onOpenChange, record, onSave, existin
         // NOTE: In App.tsx logic: "If editingRecord.id !== originalId && data.some(d => d.id === editingRecord.id)"
         // Since we don't pass 'originalId' explicitly separately, use the record prop.
 
-        if (record && editingRecord.id !== record.id && existingIds.includes(editingRecord.id)) {
+        if (record && editingRecord.id !== record.id && existingIds.has(editingRecord.id)) {
             toast.error("ID đã tồn tại!", {
                 description: `Record với ID #${editingRecord.id} đã có trong danh sách.`
             })
@@ -43,12 +43,14 @@ export function EditRecordDialog({ isOpen, onOpenChange, record, onSave, existin
 
         onSave({
             ...editingRecord,
+            attendance_rate: editingRecord.attendance_rate !== undefined ? editingRecord.attendance_rate / 100 : undefined,
+            composite_score: ((editingRecord.test_math || 0) + (editingRecord.test_literature || 0)) / 2,
             lastUpdate: new Date().toISOString().split('T')[0]
         })
 
         onOpenChange(false)
         toast.success("Đã cập nhật record!", {
-            description: `Student ID: ${editingRecord.id} đã được cập nhật.`
+            description: `Học sinh UID: ${editingRecord.student_uid || editingRecord.id} đã được cập nhật.`
         })
     }
 
@@ -56,87 +58,143 @@ export function EditRecordDialog({ isOpen, onOpenChange, record, onSave, existin
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>Chỉnh sửa Record</DialogTitle>
+                    <DialogTitle>Chỉnh sửa Học Sinh</DialogTitle>
                     <DialogDescription>
-                        Cập nhật thông tin cho record #{record?.id}
+                        Cập nhật thông tin cho record #{record?.id} {record?.student_uid && `(${record.student_uid})`}
                     </DialogDescription>
                 </DialogHeader>
                 {editingRecord && (
                     <div className="grid gap-4 py-4 grid-cols-2">
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-id">ID</Label>
+                            <Label htmlFor="edit-uid">Mã Học Sinh (UID)</Label>
+                            <Input
+                                id="edit-uid"
+                                value={editingRecord.student_uid || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, student_uid: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-id">ID Hệ Thống (Không nên sửa)</Label>
                             <Input
                                 id="edit-id"
                                 type="number"
                                 value={editingRecord.id}
                                 onChange={(e) => setEditingRecord(prev => prev ? { ...prev, id: parseInt(e.target.value) || 0 } : null)}
-                                placeholder="Nhập ID..."
                             />
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-gender">Gender</Label>
-                            <Select value={editingRecord.gender} onValueChange={(v) => setEditingRecord(prev => prev ? { ...prev, gender: v } : null)}>
-                                <SelectTrigger id="edit-gender"><SelectValue /></SelectTrigger>
+                            <Label htmlFor="edit-school">Tên Trường</Label>
+                            <Input
+                                id="edit-school"
+                                value={editingRecord.school_name || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, school_name: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-province">Tỉnh/Thành</Label>
+                            <Input
+                                id="edit-province"
+                                value={editingRecord.province_name || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, province_name: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-level">Cấp Học</Label>
+                            <Input
+                                id="edit-level"
+                                value={editingRecord.level_name || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, level_name: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-type">Loại Trường</Label>
+                            <Input
+                                id="edit-type"
+                                value={editingRecord.type_name || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, type_name: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-grade">Khối Lớp</Label>
+                            <Input
+                                id="edit-grade"
+                                value={editingRecord.grade || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, grade: e.target.value } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-year">Năm Học</Label>
+                            <Input
+                                id="edit-year"
+                                type="number"
+                                value={editingRecord.year || ''}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, year: parseInt(e.target.value) || 0 } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-attendance">Tỉ Lệ Chuyên Cần (%)</Label>
+                            <Input
+                                id="edit-attendance"
+                                type="number"
+                                min="0"
+                                max="100"
+                                value={editingRecord.attendance_rate !== undefined ? Math.round(editingRecord.attendance_rate * 100) : 100}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, attendance_rate: parseFloat(e.target.value) } : null)}
+                            />
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="edit-tier">Xếp loại (Tier)</Label>
+                            <Select value={editingRecord.academic_tier} onValueChange={(v) => setEditingRecord(prev => prev ? { ...prev, academic_tier: v } : null)}>
+                                <SelectTrigger id="edit-tier"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="male">Male</SelectItem>
-                                    <SelectItem value="female">Female</SelectItem>
+                                    <SelectItem value="Tier 1">Tier 1</SelectItem>
+                                    <SelectItem value="Tier 2">Tier 2</SelectItem>
+                                    <SelectItem value="Tier 3">Tier 3</SelectItem>
+                                    <SelectItem value="Tier 4">Tier 4</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
                         <div className="grid gap-2">
-                            <Label htmlFor="edit-race">Race/Ethnicity</Label>
+                            <Label htmlFor="edit-gpa">GPA</Label>
                             <Input
-                                id="edit-race"
-                                value={editingRecord.race_ethnicity}
-                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, race_ethnicity: e.target.value } : null)}
+                                id="edit-gpa"
+                                type="number"
+                                step="0.1"
+                                value={editingRecord.gpa_overall || 0}
+                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, gpa_overall: parseFloat(e.target.value) || 0 } : null)}
                             />
                         </div>
-                        <div className="grid gap-2">
-                            <Label htmlFor="edit-education">Parental Education</Label>
-                            <Input
-                                id="edit-education"
-                                value={editingRecord.parental_education}
-                                onChange={(e) => setEditingRecord(prev => prev ? { ...prev, parental_education: e.target.value } : null)}
-                            />
-                        </div>
-                        <div className="col-span-2 grid grid-cols-3 gap-4">
+                        <div className="col-span-2 grid grid-cols-2 gap-4">
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-math">Math Score</Label>
+                                <Label htmlFor="edit-math">Điểm Toán</Label>
                                 <Input
                                     id="edit-math"
                                     type="number"
-                                    value={editingRecord.math_score}
-                                    onChange={(e) => setEditingRecord(prev => prev ? { ...prev, math_score: parseFloat(e.target.value) || 0 } : null)}
+                                    step="0.1"
+                                    value={editingRecord.test_math || 0}
+                                    onChange={(e) => setEditingRecord(prev => prev ? { ...prev, test_math: parseFloat(e.target.value) || 0 } : null)}
                                 />
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="edit-reading">Reading Score</Label>
+                                <Label htmlFor="edit-reading">Điểm Văn</Label>
                                 <Input
                                     id="edit-reading"
                                     type="number"
-                                    value={editingRecord.reading_score}
-                                    onChange={(e) => setEditingRecord(prev => prev ? { ...prev, reading_score: parseFloat(e.target.value) || 0 } : null)}
-                                />
-                            </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="edit-writing">Writing Score</Label>
-                                <Input
-                                    id="edit-writing"
-                                    type="number"
-                                    value={editingRecord.writing_score}
-                                    onChange={(e) => setEditingRecord(prev => prev ? { ...prev, writing_score: parseFloat(e.target.value) || 0 } : null)}
+                                    step="0.1"
+                                    value={editingRecord.test_literature || 0}
+                                    onChange={(e) => setEditingRecord(prev => prev ? { ...prev, test_literature: parseFloat(e.target.value) || 0 } : null)}
                                 />
                             </div>
                         </div>
                         <div className="grid gap-2 col-span-2">
-                            <Label htmlFor="edit-status">Status</Label>
+                            <Label htmlFor="edit-status">Trạng Thái</Label>
                             <Select
                                 value={editingRecord.status}
                                 onValueChange={(value: "active" | "inactive" | "pending") =>
                                     setEditingRecord(prev => prev ? { ...prev, status: value } : null)
                                 }
                             >
-                                <SelectTrigger>
+                                <SelectTrigger id="edit-status">
                                     <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
