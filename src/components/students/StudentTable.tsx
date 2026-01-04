@@ -139,14 +139,14 @@ export function StudentTable({
                             <TableRow key={item.id} className="group">
                                 <TableCell className="font-mono text-[10px] text-muted-foreground">{item.id}</TableCell>
                                 <TableCell className="font-mono text-xs font-semibold">{item.student_uid || 'N/A'}</TableCell>
-                                <TableCell className="max-w-[120px] truncate text-xs">{item.school_name || 'N/A'}</TableCell>
+                                <TableCell className="text-xs">{item.school_name || 'N/A'}</TableCell>
                                 <TableCell className="text-xs">{item.province_name || 'N/A'}</TableCell>
                                 <TableCell className="text-xs font-bold">{item.grade || 'N/A'}</TableCell>
                                 <TableCell className="text-[10px] uppercase">{item.level_name || 'N/A'}</TableCell>
                                 <TableCell className="text-[10px] whitespace-nowrap">{item.type_name || 'N/A'}</TableCell>
                                 <TableCell className="text-xs">{item.year || 'N/A'}</TableCell>
                                 <TableCell className="text-right text-xs font-medium text-amber-600">
-                                    {item.attendance_rate ? `${(item.attendance_rate * 100).toFixed(1)}%` : '0%'}
+                                    {item.attendance_rate ? `${item.attendance_rate.toFixed(1)}%` : '0%'}
                                 </TableCell>
                                 <TableCell className="text-right font-bold text-blue-600">{(item.gpa_overall || 0).toFixed(1)}</TableCell>
                                 <TableCell className="text-right font-medium text-xs">{(item.test_math || 0).toFixed(1)}</TableCell>

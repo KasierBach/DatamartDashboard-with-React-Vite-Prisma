@@ -19,6 +19,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     login: (username: string, password: string) => Promise<boolean>;
+    register: (username: string, password: string, name: string) => Promise<{ success: boolean; message: string }>;
     logout: () => void;
     updateUser: (user: User) => void;
     isLoading: boolean;
@@ -68,6 +69,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
+    const register = async (username: string, password: string, name: string) => {
+        try {
+            const response = await fetch(API_ENDPOINTS.REGISTER, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username, password, name })
+            });
+
+            const data = await response.json();
+            return {
+                success: data.success,
+                message: data.message || (data.success ? 'Đăng ký thành công!' : 'Đăng ký thất bại!')
+            };
+        } catch (error) {
+            console.error("Register error:", error);
+            return { success: false, message: 'Lỗi kết nối server' };
+        }
+    };
+
     const logout = () => {
         setUser(null);
         localStorage.removeItem('user');
@@ -81,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const contextValue = useMemo(() => ({
         user,
         login,
+        register,
         logout,
         updateUser,
         isLoading

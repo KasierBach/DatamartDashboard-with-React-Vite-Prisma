@@ -2,7 +2,7 @@ import { StudentDetail, ProvinceSummary, SchoolSummary } from './schema';
 
 export type { StudentDetail, ProvinceSummary, SchoolSummary };
 
-export type Role = 'principal' | 'vice_principal' | 'head_dept' | 'teacher' | 'academic_affairs' | 'qa_testing' | 'student_affairs' | 'student' | 'no_role';
+export type Role = 'principal' | 'vice_principal' | 'head_dept' | 'teacher' | 'academic_affairs' | 'qa_testing' | 'student_affairs' | 'student' | 'no_role' | 'PENDING';
 
 export interface DataRecord extends StudentDetail {
     // Fields for UI state and compatibility

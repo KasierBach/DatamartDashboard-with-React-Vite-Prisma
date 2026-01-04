@@ -9,6 +9,12 @@ interface LoginBody {
     password: string;
 }
 
+interface RegisterBody {
+    username: string;
+    password: string;
+    name: string;
+}
+
 // Login
 router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => {
     const { username, password } = req.body;
@@ -43,6 +49,46 @@ router.post('/login', async (req: Request<{}, {}, LoginBody>, res: Response) => 
     } catch (err) {
         console.error(err);
         res.status(500).json({ success: false, message: 'Server error' });
+    }
+});
+
+// Register
+router.post('/register', async (req: Request<{}, {}, RegisterBody>, res: Response) => {
+    const { username, password, name } = req.body;
+    try {
+        // Check if user exists
+        const existingUser = await prisma.user.findUnique({
+            where: { username }
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ success: false, message: 'Tài khoản đã tồn tại' });
+        }
+
+        // Create user with default role 'PENDING'
+        const newUser = await prisma.user.create({
+            data: {
+                username,
+                password,
+                name,
+                role: 'PENDING' // Default role
+            }
+        });
+
+        await logAudit(username, 'REGISTER_SUCCESS', `New user registered: ${username}`, req);
+
+        res.json({
+            success: true,
+            user: {
+                id: newUser.id,
+                username: newUser.username,
+                role: newUser.role,
+                name: newUser.name
+            }
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ success: false, message: 'Lỗi server khi đăng ký' });
     }
 });
 

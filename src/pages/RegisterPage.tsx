@@ -2,44 +2,43 @@ import { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "sonner";
-import { GraduationCap, User, Lock } from "lucide-react";
+import { GraduationCap, User, Lock, UserPlus } from "lucide-react";
 
-export function LoginPage() {
+export function RegisterPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const { login } = useAuth();
+    const [confirmPassword, setConfirmPassword] = useState("");
+    const [name, setName] = useState("");
+    const { register } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!username.trim()) {
-            toast.error("Vui lòng nhập tên đăng nhập!");
+
+        if (!username.trim() || !password || !name.trim()) {
+            toast.error("Vui lòng điền đầy đủ thông tin!");
             return;
         }
-        if (!password) {
-            toast.error("Vui lòng nhập mật khẩu!");
+
+        if (password !== confirmPassword) {
+            toast.error("Mật khẩu xác nhận không khớp!");
             return;
         }
-        const success = await login(username.trim(), password);
-        if (success) {
-            toast.success("Đăng nhập thành công!");
-            navigate("/");
+
+        if (password.length < 6) {
+            toast.error("Mật khẩu phải có ít nhất 6 ký tự!");
+            return;
+        }
+
+        const result = await register(username.trim(), password, name.trim());
+
+        if (result.success) {
+            toast.success("Đăng ký thành công! Vui lòng liên hệ quản trị viên để được phân quyền.");
+            navigate("/login");
         } else {
-            toast.error("Sai tên đăng nhập hoặc mật khẩu!");
+            toast.error(result.message);
         }
     };
-
-    // Danh sách tài khoản demo để hiển thị
-    const demoAccounts = [
-        { username: 'principal', password: 'principal123', role: 'Hiệu trưởng' },
-        { username: 'vice_principal', password: 'viceprincipal123', role: 'Ban giám hiệu' },
-        { username: 'head_dept', password: 'headdept123', role: 'Trưởng khoa' },
-        { username: 'teacher', password: 'teacher123', role: 'Giáo viên' },
-        { username: 'academic_affairs', password: 'academic123', role: 'Giáo vụ' },
-        { username: 'qa_testing', password: 'qatesting123', role: 'Khảo thí' },
-        { username: 'student_affairs', password: 'studentaffairs123', role: 'CTSV' },
-        { username: 'student', password: 'student123', role: 'Học sinh' },
-    ];
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-muted/40 p-4">
@@ -50,20 +49,37 @@ export function LoginPage() {
                         <span>Student's Datamart</span>
                     </div>
                     <h2 className="text-xl font-semibold tracking-tight">
-                        Đăng nhập vào hệ thống
+                        Đăng ký tài khoản mới
                     </h2>
                     <p className="text-sm text-muted-foreground">
-                        Nhập tài khoản để truy cập Dashboard
+                        Tạo tài khoản để theo dõi kết quả học tập
                     </p>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-2">
+                        <label className="text-sm font-medium leading-none" htmlFor="name">
+                            Họ và tên
+                        </label>
+                        <div className="relative">
+                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                                id="name"
+                                type="text"
+                                className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                placeholder="Nhập họ tên..."
+                                value={name}
+                                onChange={(e) => setName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
                         <label className="text-sm font-medium leading-none" htmlFor="username">
                             Tên đăng nhập
                         </label>
                         <div className="relative">
-                            <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <input
                                 id="username"
                                 type="text"
@@ -75,6 +91,7 @@ export function LoginPage() {
                             />
                         </div>
                     </div>
+
                     <div className="space-y-2">
                         <label className="text-sm font-medium leading-none" htmlFor="password">
                             Mật khẩu
@@ -85,10 +102,28 @@ export function LoginPage() {
                                 id="password"
                                 type="password"
                                 className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                                placeholder="Nhập password..."
+                                placeholder="Nhập mật khẩu (ít nhất 6 ký tự)..."
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                autoComplete="current-password"
+                                autoComplete="new-password"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">
+                            Xác nhận mật khẩu
+                        </label>
+                        <div className="relative">
+                            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <input
+                                id="confirmPassword"
+                                type="password"
+                                className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                placeholder="Nhập lại mật khẩu..."
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                autoComplete="new-password"
                             />
                         </div>
                     </div>
@@ -97,41 +132,15 @@ export function LoginPage() {
                         type="submit"
                         className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
                     >
-                        Đăng nhập
+                        Đăng ký
                     </button>
                 </form>
 
                 <div className="text-center text-sm">
-                    Chưa có tài khoản?{" "}
-                    <Link to="/register" className="text-primary hover:underline font-medium">
-                        Đăng ký ngay
+                    Đã có tài khoản?{" "}
+                    <Link to="/login" className="text-primary hover:underline font-medium">
+                        Đăng nhập ngay
                     </Link>
-                </div>
-
-                <div className="border-t pt-4">
-                    <p className="text-xs text-muted-foreground text-center mb-3">
-                        Tài khoản demo (click để điền tự động)
-                    </p>
-                    <div className="grid grid-cols-1 gap-2 text-xs max-h-48 overflow-y-auto">
-                        {demoAccounts.map((acc) => (
-                            <button
-                                key={acc.username}
-                                type="button"
-                                onClick={() => {
-                                    setUsername(acc.username);
-                                    setPassword(acc.password);
-                                }}
-                                className="flex items-center justify-between px-3 py-2 rounded border hover:bg-muted/50 transition-colors text-left"
-                            >
-                                <div className="flex flex-col">
-                                    <span className="font-medium text-primary">{acc.role}</span>
-                                    <span className="text-muted-foreground font-mono text-[10px]">
-                                        {acc.username} / {acc.password}
-                                    </span>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
                 </div>
             </div>
         </div>

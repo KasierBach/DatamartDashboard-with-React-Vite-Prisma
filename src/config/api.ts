@@ -6,6 +6,7 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 export const API_ENDPOINTS = {
     // Auth
     LOGIN: `${API_BASE_URL}/api/login`,
+    REGISTER: `${API_BASE_URL}/api/register`,
 
     // Students
     STUDENTS: `${API_BASE_URL}/api/students`,
