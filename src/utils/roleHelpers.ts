@@ -12,6 +12,7 @@ export const getRoleDisplayName = (role: Role): string => {
         student_affairs: 'Công tác sinh viên',
         student: 'Học sinh',
         no_role: 'Chưa phân quyền',
+        PENDING: 'Đang chờ duyệt',
     };
     return roleMap[role] || role;
 };
@@ -28,6 +29,7 @@ export const getRoleBadgeColor = (role: Role): string => {
         student_affairs: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
         student: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
         no_role: 'bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-900/50 dark:text-slate-400',
+        PENDING: 'bg-yellow-50 text-yellow-700 border border-yellow-200 animate-pulse',
     };
     return colorMap[role] || 'bg-gray-100 text-gray-800';
 };

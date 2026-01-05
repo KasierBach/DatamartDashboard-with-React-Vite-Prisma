@@ -28,7 +28,9 @@ export interface DashboardProps {
     atRiskDemographics: {
         type: { name: string, value: number }[];
         level: { name: string, value: number }[];
+        province: { name: string, value: number }[];
     };
+    regionalSupportData: { province: string, belowAvgRate: number }[];
     provincePerformance: { name: string, avg: number | null, students: number | null }[];
     topSchools: { name: string, avg: number | null, students: number | null }[];
     facultyStats: any[];

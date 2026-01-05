@@ -15,6 +15,8 @@ import {
     ScatterChart,
     Scatter,
     Cell,
+    LineChart,
+    Line,
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -28,8 +30,17 @@ import {
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import { DashboardProps } from "./types"
-import { THEME_COLORS } from "./constants"
+import { SCORE_THRESHOLDS, THEME_COLORS } from "./constants"
 import { sampleData, formatOneDecimal } from "@/utils/dataUtils"
+
+// Helper component for Data Context Overlay
+const DataStats = ({ n, gpaRange, avg }: { n: number, gpaRange?: string, avg?: number | string }) => (
+    <div className="mt-2 pt-2 border-t border-dashed flex flex-wrap gap-2 items-center text-[10px] text-muted-foreground uppercase tracking-wider">
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">N: <strong>{n.toLocaleString()}</strong> HS</span>
+        {gpaRange && <span className="bg-gray-100 px-1.5 py-0.5 rounded">Phạm vi: <strong>{gpaRange}</strong></span>}
+        {avg && <span className="bg-gray-100 px-1.5 py-0.5 rounded text-blue-600">TB: <strong>{avg}</strong></span>}
+    </div>
+);
 
 function PrincipalDashboardComponent(props: DashboardProps) {
     const {
@@ -45,20 +56,14 @@ function PrincipalDashboardComponent(props: DashboardProps) {
     const [atRiskPage, setAtRiskPage] = useState(1);
     const [topPage, setTopPage] = useState(1);
 
-    // Memoize at-risk list and filters
+    // Memoize at-risk list and filters (Optimized: avoiding sort/slice if list is already provided)
     const { effectiveAtRiskList, passRate } = useMemo(() => {
-        const atRisk = insights.atRiskList.length > 0
+        const atRisk = (insights?.atRiskList?.length || 0) > 0
             ? insights.atRiskList
-            : [...data]
-                .sort((a, b) => (a.gpa_overall || 0) - (b.gpa_overall || 0))
-                .slice(0, 20)
-                .map(s => ({
-                    ...s,
-                    id: s.student_uid,
-                    test_average: ((s.test_math || 0) + (s.test_literature || 0)) / 2,
-                }));
+            : data.filter(d => (d.test_math || 0) < SCORE_THRESHOLDS.AT_RISK || (d.test_literature || 0) < SCORE_THRESHOLDS.AT_RISK)
+                .slice(0, 50);
 
-        const passingCount = data.filter(d => (d.gpa_overall || 0) >= 5.0).length;
+        const passingCount = data.filter(d => (d.gpa_overall || 0) >= SCORE_THRESHOLDS.PASSING).length;
         const rate = data.length > 0 ? Math.round((passingCount / data.length) * 100) : 0;
 
         return { effectiveAtRiskList: atRisk, passRate: rate };
@@ -83,6 +88,54 @@ function PrincipalDashboardComponent(props: DashboardProps) {
         })).filter(s => s.gpa > 0);
     }, [schools]);
 
+    // Aggregate yearly trends
+    const historicalTrendData = useMemo(() => {
+        const years: Record<string, { math: number[], lit: number[] }> = {};
+        data.forEach(d => {
+            const y = String(d.year || 'Unknown');
+            if (!years[y]) {
+                years[y] = { math: [], lit: [] };
+            }
+            if (d.test_math !== null && d.test_math !== undefined) years[y].math.push(Number(d.test_math));
+            if (d.test_literature !== null && d.test_literature !== undefined) years[y].lit.push(Number(d.test_literature));
+        });
+
+        return Object.entries(years)
+            .map(([year, values]) => ({
+                year,
+                math: values.math.length ? parseFloat((values.math.reduce((a, b) => a + b, 0) / values.math.length).toFixed(2)) : 0,
+                lit: values.lit.length ? parseFloat((values.lit.reduce((a, b) => a + b, 0) / values.lit.length).toFixed(2)) : 0,
+            }))
+            .sort((a, b) => a.year.localeCompare(b.year));
+    }, [data]);
+
+    // Calculate Student Momentum (GPA Change vs Previous Year)
+    const momentumMap = useMemo(() => {
+        const studentHistory: Record<string, { year: number, gpa: number }[]> = {};
+        data.forEach(d => {
+            const id = String(d.student_uid || d.id);
+            if (!studentHistory[id]) studentHistory[id] = [];
+            studentHistory[id].push({ year: Number(d.year), gpa: Number(d.gpa_overall) || 0 });
+        });
+
+        const momentum: Record<string, number> = {};
+        Object.entries(studentHistory).forEach(([id, history]) => {
+            const sorted = history.sort((a, b) => b.year - a.year);
+            if (sorted.length >= 2) {
+                momentum[id] = sorted[0].gpa - sorted[1].gpa;
+            }
+        });
+        return momentum;
+    }, [data]);
+
+    const renderMomentum = (id: string) => {
+        const diff = momentumMap[String(id)];
+        if (diff === undefined) return null;
+        if (diff > 0.2) return <span className="text-green-600 ml-1 font-bold" title={`Tăng ${formatOneDecimal(diff)} điểm`}>📈</span>;
+        if (diff < -0.2) return <span className="text-red-600 ml-1 font-bold" title={`Giảm ${formatOneDecimal(Math.abs(diff))} điểm`}>📉</span>;
+        return null;
+    };
+
     return (
         <div className="space-y-6">
             <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded shadow-sm flex items-start">
@@ -90,10 +143,15 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                 <div>
                     <h3 className="text-lg font-bold text-blue-800">Tổng quan Chiến lược & KPIs</h3>
                     <p className="text-blue-700 mt-1">
-                        Hiệu suất toàn trường đạt <strong>{formatOneDecimal(avgScores.avg)}/10.0</strong>, tăng nhẹ so với kỳ trước.
+                        Hiệu suất toàn trường đạt <strong>{formatOneDecimal(avgScores.avg)}/10.0</strong>.
                         <br />
-                        <strong>Điểm nhấn:</strong> Môn Toán có sự cải thiện rõ rệt (+3%).
-                        <strong> Cần lưu ý:</strong> Tỷ lệ học sinh trong nhóm "Cần hỗ trợ" (At-Risk) môn Văn đang tăng nhẹ.
+                        <strong>Điểm nhấn:</strong> Tỷ lệ đạt chuẩn đạt <strong>{passRate}%</strong>.
+                        {(effectiveAtRiskList.length > 0) && (
+                            <><strong> Cần lưu ý:</strong> Có <strong>{effectiveAtRiskList.length}</strong> học sinh trong nhóm rủi ro (Điểm &lt; {SCORE_THRESHOLDS.AT_RISK}) cần được hỗ trợ kịp thời.</>
+                        )}
+                        {(effectiveAtRiskList.length === 0) && (
+                            <><strong> Trạng thái:</strong> Hiện tại không có học sinh nào nằm trong diện cảnh báo rủi ro cao.</>
+                        )}
                     </p>
                 </div>
             </div>
@@ -139,22 +197,64 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                 </Card>
             </div>
 
+            <Card>
+                <CardHeader>
+                    <CardTitle>Xu hướng Chất lượng qua các năm (2018 - 2024)</CardTitle>
+                    <CardDescription>
+                        Dữ liệu cho thấy sự biến động hiệu suất học thuật dài hạn.
+                        <strong> Insight:</strong> {historicalTrendData.length > 1 ? (historicalTrendData[historicalTrendData.length - 1].math > historicalTrendData[0].math ? 'Điểm số có xu hướng cải thiện so với giai đoạn bắt đầu.' : 'Điểm số cần được theo dõi sát do có dấu hiệu đi ngang hoặc sụt giảm.') : 'Đang thu thập thêm dữ liệu để đánh giá xu hướng.'}
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[350px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={historicalTrendData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                                <XAxis dataKey="year" />
+                                <YAxis domain={[0, 10]} />
+                                <Tooltip />
+                                <Legend />
+                                <Line type="monotone" dataKey="math" name="Điểm Toán TB" stroke={THEME_COLORS.math} strokeWidth={3} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+                                <Line type="monotone" dataKey="lit" name="Điểm Văn TB" stroke={THEME_COLORS.reading} strokeWidth={3} dot={{ r: 6 }} activeDot={{ r: 8 }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <DataStats
+                        n={data.length}
+                        gpaRange="0 - 10"
+                        avg={`${avgScores.math} (Toán) | ${avgScores.reading} (Văn)`}
+                    />
+                    <div className="mt-2 text-xs text-blue-600 font-medium">
+                        💡 <strong>Mẹo:</strong> Sử dụng dữ liệu này để đánh giá hiệu quả của các cải cách giáo dục qua từng niên khóa.
+                    </div>
+                </CardContent>
+            </Card>
+
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
                 <Card className="col-span-4">
-                    <CardHeader><CardTitle>Hiệu suất theo Tỉnh thành (Top 10)</CardTitle><CardDescription>So sánh điểm trung bình GPA giữa các tỉnh thành.</CardDescription></CardHeader>
-                    <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={props.provincePerformance} layout="vertical" margin={{ left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={true} /><XAxis type="number" domain={[0, 10]} /><YAxis dataKey="name" type="category" width={100} style={{ fontSize: '12px' }} /><Tooltip />
-                                <Bar dataKey="avg" name="Điểm TB" fill={THEME_COLORS.math} radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardHeader>
+                        <CardTitle>Hiệu suất theo Tỉnh thành (Top 10)</CardTitle>
+                        <CardDescription>
+                            Phân tích địa lý cho thấy sự chênh lệch nguồn lực.
+                            {props.provincePerformance.length > 0 ? `Tỉnh dẫn đầu có điểm TB cao hơn tỉnh thấp nhất ${((props.provincePerformance[0].avg || 0) - (props.provincePerformance[props.provincePerformance.length - 1].avg || 0)).toFixed(1)} điểm.` : 'Đang xử lý dữ liệu địa lý...'}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[350px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={props.provincePerformance} layout="vertical" margin={{ left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={true} /><XAxis type="number" domain={[0, 10]} /><YAxis dataKey="name" type="category" width={100} style={{ fontSize: '12px' }} /><Tooltip />
+                                    <Bar dataKey="avg" name="Điểm TB" fill={THEME_COLORS.math} radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <DataStats n={data.length} avg={formatOneDecimal(avgScores.avg)} />
                     </CardContent>
                 </Card>
 
                 <Card className="col-span-3">
                     <CardHeader><CardTitle>Top 5 Trường dẫn đầu</CardTitle><CardDescription>Xếp hạng theo điểm GPA trung bình.</CardDescription></CardHeader>
-                    <CardContent className="h-[350px]">
+                    <CardContent>
                         <div className="space-y-4">
                             {props.topSchools.map((school, i) => (
                                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
@@ -172,35 +272,75 @@ function PrincipalDashboardComponent(props: DashboardProps) {
 
             <div className="grid gap-6 md:grid-cols-3">
                 <Card>
-                    <CardHeader><CardTitle>Phân bổ Chất lượng</CardTitle><CardDescription>Tỷ lệ Giỏi - Khá - TB - Yếu</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={[
-                                        { name: 'Khá/Giỏi', value: data.length - effectiveAtRiskList.length, fill: '#22c55e' },
-                                        { name: 'Yếu/Kém', value: effectiveAtRiskList.length, fill: '#ef4444' }
-                                    ]}
-                                    cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                                ><Label width={30} position="center">Tổng quát</Label></Pie>
-                                <Tooltip /><Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <CardHeader>
+                        <CardTitle>Phân bổ Chất lượng</CardTitle>
+                        <CardDescription>Cơ cấu học sinh theo nhóm năng lực. Hiện có <strong>{data.length > 0 ? ((effectiveAtRiskList.length / data.length) * 100).toFixed(0) : 0}%</strong> học sinh thuộc diện cần can thiệp.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={[
+                                            { name: 'Khá/Giỏi', value: data.length - effectiveAtRiskList.length, fill: '#22c55e' },
+                                            { name: 'Yếu/Kém', value: effectiveAtRiskList.length, fill: '#ef4444' }
+                                        ]}
+                                        cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                                    ><Label width={30} position="center">Tổng quát</Label></Pie>
+                                    <Tooltip /><Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <DataStats n={data.length} />
                     </CardContent>
                 </Card>
 
                 <Card className="col-span-2">
-                    <CardHeader><CardTitle>Cảnh báo sụt giảm theo Môn</CardTitle><CardDescription>Tỷ lệ Đạt chuẩn (%) của từng bộ môn trọng tâm.</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={passRateStats} margin={{ left: 20 }}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="subject" /><YAxis domain={[0, 100]} /><Tooltip /><Legend />
-                                <Bar dataKey="rate" fill="#3b82f6" name="Tỷ lệ Đạt (%)" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardHeader>
+                        <CardTitle>Cảnh báo sụt giảm theo Môn</CardTitle>
+                        <CardDescription>Tỷ lệ Đạt chuẩn (%) của từng bộ môn trọng tâm. {passRateStats.length > 0 ? `Môn ${[...passRateStats].sort((a, b) => a.rate - b.rate)[0]?.subject} đang có tỷ lệ thấp nhất.` : 'Đang tải dữ liệu bộ môn...'}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={passRateStats} margin={{ left: 20 }}>
+                                    <CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="subject" /><YAxis domain={[0, 100]} /><Tooltip /><Legend />
+                                    <Bar dataKey="rate" fill="#3b82f6" name="Tỷ lệ Đạt (%)" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <DataStats n={data.length} avg={`${passRate}% (Chung)`} />
                     </CardContent>
                 </Card>
             </div>
+
+            <Card className="border-t-4 border-t-purple-500 shadow-sm">
+                <CardHeader>
+                    <CardTitle>Phân tích Thâm niên Trường & Chất lượng</CardTitle>
+                    <CardDescription>
+                        Mối tương quan giữa tuổi đời trường (năm) và GPA trung bình.
+                        <strong> Insight:</strong> Các trường thâm niên thường có độ ổn định chất lượng cao hơn (điểm tập trung ở vùng trên).
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="h-[400px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                                <CartesianGrid /><XAxis type="number" dataKey="age" name="Tuổi đời" unit=" năm" /><YAxis type="number" dataKey="gpa" name="GPA TB" domain={[0, 10]} /><Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                <Scatter name="Trường học" data={schoolAgeData} fill="#8884d8">
+                                    {schoolAgeData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.gpa >= 8.0 ? '#22c55e' : entry.gpa >= 6.5 ? '#3b82f6' : '#f59e0b'} />
+                                    ))}
+                                </Scatter>
+                            </ScatterChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <DataStats n={schools.length} gpaRange="4.0 - 9.5" avg={formatOneDecimal(avgScores.avg)} />
+                    <div className="mt-2 text-xs text-purple-600 font-medium italic">
+                        💡 <strong>Mẹo:</strong> Tập trung học hỏi mô hình vận hành từ những "trường thâm niên chất lượng" (màu xanh lá) ở phía bên phải biểu đồ.
+                    </div>
+                </CardContent>
+            </Card>
 
             <div className="grid gap-4">
                 <Card className="col-span-2 shadow-sm border-t-4 border-t-blue-500">
@@ -214,7 +354,13 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                                     <TableBody>
                                         {currentAtRisk.length > 0 ? (
                                             currentAtRisk.map((s: any) => (
-                                                <TableRow key={s.id}><TableCell className="font-medium">{s.id}</TableCell><TableCell>Học sinh {s.id}</TableCell><TableCell className="font-bold text-red-600">{formatOneDecimal(s.gpa_overall)}</TableCell><TableCell className="text-red-500">{(s.test_math || 0) < 5.0 ? 'Toán yếu ' : ''}{(s.test_literature || 0) < 5.0 ? 'Văn yếu ' : ''}</TableCell><TableCell><Badge variant="destructive" className="bg-red-600">Cần can thiệp</Badge></TableCell></TableRow>
+                                                <TableRow key={s.id}>
+                                                    <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
+                                                    <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
+                                                    <TableCell className="font-bold text-red-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
+                                                    <TableCell className="text-red-500">{(s.test_math || 0) < 5.0 ? 'Toán yếu ' : ''}{(s.test_literature || 0) < 5.0 ? 'Văn yếu ' : ''}</TableCell>
+                                                    <TableCell><Badge variant="destructive" className="bg-red-600">Cần can thiệp</Badge></TableCell>
+                                                </TableRow>
                                             ))
                                         ) : <TableRow><TableCell colSpan={5} className="text-center py-4">Không có học sinh rủi ro</TableCell></TableRow>}
                                     </TableBody>
@@ -234,7 +380,13 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                                     <TableBody>
                                         {currentTop.length > 0 ? (
                                             currentTop.map((s: any) => (
-                                                <TableRow key={s.id}><TableCell className="font-medium">{s.id}</TableCell><TableCell>Học sinh {s.id}</TableCell><TableCell className="font-bold text-green-600">{formatOneDecimal(s.gpa_overall)}</TableCell><TableCell>{Math.max(s.test_math || 0, s.test_literature || 0) === (s.test_math || 0) ? 'Toán' : 'Văn'}</TableCell><TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Xuất sắc</Badge></TableCell></TableRow>
+                                                <TableRow key={s.id}>
+                                                    <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
+                                                    <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
+                                                    <TableCell className="font-bold text-green-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
+                                                    <TableCell>{Math.max(s.test_math || 0, s.test_literature || 0) === (s.test_math || 0) ? 'Toán' : 'Văn'}</TableCell>
+                                                    <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Xuất sắc</Badge></TableCell>
+                                                </TableRow>
                                             ))
                                         ) : <TableRow><TableCell colSpan={5} className="text-center py-4">Chưa có dữ liệu</TableCell></TableRow>}
                                     </TableBody>
@@ -248,22 +400,6 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                     </CardContent>
                 </Card>
             </div>
-
-            <Card className="border-t-4 border-t-purple-500 shadow-sm">
-                <CardHeader><CardTitle>Phân tích Thâm niên Trường & Chất lượng</CardTitle></CardHeader>
-                <CardContent className="h-[400px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                            <CartesianGrid /><XAxis type="number" dataKey="age" name="Tuổi đời" unit=" năm" /><YAxis type="number" dataKey="gpa" name="GPA TB" domain={[0, 10]} /><Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                            <Scatter name="Trường học" data={schoolAgeData} fill="#8884d8">
-                                {schoolAgeData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.gpa >= 8.0 ? '#22c55e' : entry.gpa >= 6.5 ? '#3b82f6' : '#f59e0b'} />
-                                ))}
-                            </Scatter>
-                        </ScatterChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
         </div>
     );
 }

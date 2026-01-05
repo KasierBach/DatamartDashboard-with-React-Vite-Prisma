@@ -28,6 +28,15 @@ import {
 import { DashboardProps } from "./types"
 import { groupByName, formatOneDecimal } from "@/utils/dataUtils"
 
+// Helper component for Data Context Overlay
+const DataStats = ({ n, range, avg }: { n: number, range?: string, avg?: number | string }) => (
+    <div className="mt-2 pt-2 border-t border-dashed flex flex-wrap gap-2 items-center text-[10px] text-muted-foreground uppercase tracking-wider">
+        <span className="bg-gray-100 px-1.5 py-0.5 rounded">N: <strong>{n.toLocaleString()}</strong> Đơn vị/HS</span>
+        {range && <span className="bg-gray-100 px-1.5 py-0.5 rounded">Phạm vi: <strong>{range}</strong></span>}
+        {avg && <span className="bg-gray-100 px-1.5 py-0.5 rounded text-orange-600">Tỷ lệ: <strong>{avg}</strong></span>}
+    </div>
+);
+
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
 
 export function StudentAffairsDashboard(props: DashboardProps) {
@@ -164,56 +173,76 @@ export function StudentAffairsDashboard(props: DashboardProps) {
                 </Card>
                 <Card>
                     <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Cảnh báo Vắng học</CardTitle></CardHeader>
-                    <CardContent className="h-[100px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={attendanceStats} layout="vertical" barSize={20}>
-                                <XAxis type="number" hide />
-                                <YAxis dataKey="name" type="category" width={50} style={{ fontSize: '10px' }} />
-                                <Tooltip />
-                                <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                                    <LabelList dataKey="value" position="right" fontSize={10} />
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardContent>
+                        <div className="h-[100px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={attendanceStats} layout="vertical" barSize={20}>
+                                    <XAxis type="number" hide />
+                                    <YAxis dataKey="name" type="category" width={50} style={{ fontSize: '10px' }} />
+                                    <Tooltip />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                                        <LabelList dataKey="value" position="right" fontSize={10} />
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
-                    <CardHeader><CardTitle>Phân tích Nhóm Yếu thế</CardTitle><CardDescription>Phân bổ học sinh rủi ro cao theo loại hình trường.</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={vulnerableGroups}
-                                    cx="50%" cy="50%" labelLine={false}
-                                    label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
-                                    outerRadius={80} fill="#8884d8" dataKey="value"
-                                >
-                                    {vulnerableGroups.map((_: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <CardHeader>
+                        <CardTitle>Phân tích Nhóm Yếu thế</CardTitle>
+                        <CardDescription>
+                            Phân bổ sinh viên rủi ro học vụ theo loại trường.
+                            <strong> Insight:</strong> {vulnerableGroups[0]?.name === 'Ổn định' ? 'Hiện tại chưa phát hiện nhóm yếu thế có rủi ro học thuật cao.' : (vulnerableGroups[0]?.name === 'Public' ? 'Sinh viên trường Công lập đang chiếm tỷ trọng rủi ro cao nhất, cần tăng cường hỗ trợ học bổng.' : 'Đa số sinh viên rủi ro đến từ khối Tư thục, cần lưu ý về chính sách học phí.')}
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={vulnerableGroups}
+                                        cx="50%" cy="50%" labelLine={false}
+                                        label={({ name, percent }: any) => `${name} ${(percent * 100).toFixed(0)}%`}
+                                        outerRadius={80} fill="#8884d8" dataKey="value"
+                                    >
+                                        {vulnerableGroups.map((_: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <DataStats n={localRiskList.length} range="School Types" avg={`${formatOneDecimal((localRiskList.length / (data.length || 1)) * 100)}% (Tỷ lệ rủi ro)`} />
                     </CardContent>
                 </Card>
 
                 <Card>
-                    <CardHeader><CardTitle>Ưu tiên Hỗ trợ Vùng miền</CardTitle><CardDescription>Top 5 tỉnh/thành có tỷ lệ học sinh dưới trung bình cao nhất.</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={regionalNeed} layout="vertical" margin={{ left: 40 }}>
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" unit="%" />
-                                <YAxis dataKey="province" type="category" interval={0} fontSize={12} width={100} />
-                                <Tooltip formatter={(val) => [`${val}%`, 'Tỷ lệ dưới TB']} />
-                                <Bar dataKey="belowAvgRate" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardHeader>
+                        <CardTitle>Ưu tiên Hỗ trợ Vùng miền</CardTitle>
+                        <CardDescription>
+                            Tỉnh/thành có tỷ lệ học sinh dưới trung bình cao.
+                            <strong> Insight:</strong> Tỉnh {regionalNeed[0]?.province} đang dẫn đầu về tỷ lệ HS cần hỗ trợ ({regionalNeed[0]?.belowAvgRate}%).
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={regionalNeed} layout="vertical" margin={{ left: 40 }}>
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" unit="%" />
+                                    <YAxis dataKey="province" type="category" interval={0} fontSize={12} width={100} />
+                                    <Tooltip formatter={(val) => [`${val}%`, 'Tỷ lệ dưới TB']} />
+                                    <Bar dataKey="belowAvgRate" fill="#ef4444" radius={[0, 4, 4, 0]} barSize={20} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <DataStats n={provinceAggregation.length} avg={`${formatOneDecimal(regionalNeed.reduce((acc, p) => acc + p.belowAvgRate, 0) / (regionalNeed.length || 1))}% (TB Nhóm)`} />
                     </CardContent>
                 </Card>
             </div>
@@ -221,45 +250,96 @@ export function StudentAffairsDashboard(props: DashboardProps) {
             <div className="grid gap-6 md:grid-cols-2">
                 <Card>
                     <CardHeader><CardTitle>Phân bổ theo Tỉnh/Thành phố</CardTitle><CardDescription>Top 5 Tỉnh có số lượng học sinh cao nhất</CardDescription></CardHeader>
-                    <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={aggregatedProvinces.slice(0, 5)}
-                                    cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                                    label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                                >
-                                    {aggregatedProvinces.slice(0, 5).map((_: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                    <Label width={30} position="center">KV</Label>
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <CardContent>
+                        <div className="h-[350px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={aggregatedProvinces.slice(0, 5)}
+                                        cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                                        label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                    >
+                                        {aggregatedProvinces.slice(0, 5).map((_: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                        <Label width={30} position="center">KV</Label>
+                                    </Pie>
+                                    <Tooltip />
+                                    <Legend />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
                     </CardContent>
                 </Card>
 
                 <Card>
                     <CardHeader><CardTitle>Phân bổ Học sinh theo Khối lớp</CardTitle></CardHeader>
-                    <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={gradeData} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="name" type="category" width={100} />
-                                <Tooltip />
-                                <Bar dataKey="value" fill="#f97316" name="Số học sinh" radius={[0, 4, 4, 0]} barSize={30} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                    <CardContent>
+                        <div className="h-[350px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={gradeData} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="name" type="category" width={100} />
+                                    <Tooltip />
+                                    <Bar dataKey="value" fill="#f97316" name="Số học sinh" radius={[0, 4, 4, 0]} barSize={30} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid gap-6 md:grid-cols-2">
+                <Card>
+                    <CardHeader><CardTitle>Cơ cấu theo Loại hình Trường</CardTitle><CardDescription>Phân bổ học sinh theo Công lập/Tư thục.</CardDescription></CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={realTypeData.length ? realTypeData : typeData}
+                                        innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                                        label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
+                                    >
+                                        {(realTypeData.length ? realTypeData : typeData).map((_: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader><CardTitle>Phân bổ Rủi ro theo Cấp học</CardTitle><CardDescription>Các cấp học có tỷ lệ học sinh cần hỗ trợ cao.</CardDescription></CardHeader>
+                    <CardContent>
+                        <div className="h-[300px]">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={localRiskByLevel.length ? localRiskByLevel : atRiskDemographics.level} layout="vertical">
+                                    <CartesianGrid strokeDasharray="3 3" />
+                                    <XAxis type="number" />
+                                    <YAxis dataKey="name" type="category" width={100} style={{ fontSize: '11px' }} />
+                                    <Tooltip />
+                                    <Bar dataKey="value" name="Số HS" fill="#f87171" radius={[0, 4, 4, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
                     </CardContent>
                 </Card>
             </div>
 
             <div className="mt-6">
                 <Card className="border-t-4 border-t-orange-500">
-                    <CardHeader><CardTitle>Danh sách Sinh viên Cần Hỗ trợ & Theo dõi</CardTitle></CardHeader>
+                    <CardHeader>
+                        <CardTitle>Danh sách Sinh viên Cần Hỗ trợ & Theo dõi</CardTitle>
+                        <CardDescription>
+                            Can thiệp kịp thời để cải thiện tỷ lệ tốt nghiệp.
+                            <strong> Ghi nhận:</strong> Ưu tiên các sinh viên có Chuyên cần &lt; 85%.
+                        </CardDescription>
+                    </CardHeader>
                     <CardContent>
                         <Table>
                             <TableHeader><TableRow><TableHead>Mã SV</TableHead><TableHead>Họ tên</TableHead><TableHead>Vấn đề</TableHead><TableHead>Đề xuất hỗ trợ</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
@@ -275,43 +355,7 @@ export function StudentAffairsDashboard(props: DashboardProps) {
                                 ))}
                             </TableBody>
                         </Table>
-                    </CardContent>
-                </Card>
-            </div>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <Card>
-                    <CardHeader><CardTitle>Cơ cấu theo Loại hình Trường</CardTitle><CardDescription>Phân bổ học sinh theo Công lập/Tư thục.</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={realTypeData.length ? realTypeData : typeData}
-                                    innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
-                                    label={({ name, percent }: any) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                                >
-                                    {(realTypeData.length ? realTypeData : typeData).map((_: any, index: number) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                    ))}
-                                </Pie>
-                                <Tooltip />
-                            </PieChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader><CardTitle>Phân bổ Rủi ro theo Cấp học</CardTitle><CardDescription>Các cấp học có tỷ lệ học sinh cần hỗ trợ cao.</CardDescription></CardHeader>
-                    <CardContent className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={localRiskByLevel.length ? localRiskByLevel : atRiskDemographics.level} layout="vertical">
-                                <CartesianGrid strokeDasharray="3 3" />
-                                <XAxis type="number" />
-                                <YAxis dataKey="name" type="category" width={100} style={{ fontSize: '11px' }} />
-                                <Tooltip />
-                                <Bar dataKey="value" name="Số HS" fill="#f87171" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
+                        <DataStats n={localRiskList.length} avg={`${(localRiskList.reduce((acc, s) => acc + (s.gpa_overall || 0), 0) / (localRiskList.length || 1)).toFixed(1)} (GPA TB rủi ro)`} />
                     </CardContent>
                 </Card>
             </div>
