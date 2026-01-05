@@ -127,7 +127,7 @@ export function MessageBubble({
                                                     className="flex-1 min-w-0"
                                                     download
                                                 >
-                                                    <p className="text-sm font-semibold truncate hover:underline">
+                                                    <p className="text-sm font-semibold truncate hover:underline" title={message.attachment_url.split('/').pop()}>
                                                         {message.attachment_url.split('/').pop()}
                                                     </p>
                                                     <p className="text-[10px] opacity-70">Tệp đính kèm</p>
