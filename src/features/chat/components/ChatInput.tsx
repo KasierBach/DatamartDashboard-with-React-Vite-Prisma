@@ -2,6 +2,7 @@ import { Pencil, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AttachmentButton } from './AttachmentButton';
 import { Input } from '@/components/ui/input';
+import { EmojiPicker } from './EmojiPicker';
 import type { Message } from '../types';
 
 interface ChatInputProps {
@@ -15,6 +16,7 @@ interface ChatInputProps {
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
+    onEmojiSelect: (emoji: string) => void;
 }
 
 export function ChatInput({
@@ -28,6 +30,7 @@ export function ChatInput({
     attachment,
     onFileSelect,
     onRemoveAttachment,
+    onEmojiSelect,
 }: ChatInputProps) {
     return (
         <div className="p-4 border-t">
@@ -73,13 +76,17 @@ export function ChatInput({
                 onSubmit={e => { e.preventDefault(); onSend(); }}
                 className="flex gap-2"
             >
-                <AttachmentButton onFileSelect={onFileSelect} disabled={!!editingMessage} />
+                <div className="flex items-center gap-1">
+                    <EmojiPicker onSelect={onEmojiSelect} disabled={!!editingMessage} />
+                    <AttachmentButton onFileSelect={onFileSelect} disabled={!!editingMessage} />
+                </div>
                 <Input
                     ref={inputRef as React.RefObject<HTMLInputElement>}
-                    placeholder={editingMessage ? 'Chỉnh sửa tin nhắn...' : 'Nhập tin nhắn...'}
                     value={value}
                     onChange={onChange}
+                    onKeyPress={(e) => e.key === 'Enter' && onSend()}
                     onFocus={onFocus}
+                    placeholder={attachment ? "Thêm chú thích..." : "Nhập tin nhắn..."}
                     className="flex-1"
                 />
                 <Button type="submit" size="icon" disabled={!value.trim() && !attachment}>

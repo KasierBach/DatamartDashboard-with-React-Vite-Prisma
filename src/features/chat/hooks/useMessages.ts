@@ -12,6 +12,8 @@ interface UseMessagesReturn {
     messages: Message[];
     messagesEndRef: React.RefObject<HTMLDivElement>;
     loadMessages: (conversationId: number) => Promise<void>;
+    restoreMessage: (message: Message) => void;
+    clearMessages: () => void;
 }
 
 export function useMessages({ userId, selectedConversation }: UseMessagesProps): UseMessagesReturn {
@@ -25,6 +27,7 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         onMessageStatus,
         onMessageEdited,
         onMessageDeleted,
+        onMessageUndeleted,
         onMessageRecalled,
         markAsSeen
     } = useSocket();
@@ -101,14 +104,32 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
             }
         });
 
+        const unsubUndeleted = onMessageUndeleted((data) => {
+            console.log('onMessageUndeleted received:', data);
+            // Use conversationId from event data (more reliable than message.conversation_id)
+            const targetConvId = data.conversationId || data.message?.conversation_id;
+            if (data.message && selectedConversationIdRef.current === targetConvId) {
+                // Insert message back in correct position by created_at
+                setMessages(prev => {
+                    const exists = prev.some(msg => msg.id === data.message.id);
+                    if (exists) return prev;
+                    const newMessages = [...prev, data.message];
+                    return newMessages.sort((a, b) =>
+                        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                    );
+                });
+            }
+        });
+
         return () => {
             unsubNewMessage();
             unsubStatus();
             unsubEdited();
             unsubDeleted();
             unsubRecalled();
+            unsubUndeleted();
         };
-    }, [onNewMessage, onMessageStatus, onMessageEdited, onMessageDeleted, onMessageRecalled, userId, markAsSeen]);
+    }, [onNewMessage, onMessageStatus, onMessageEdited, onMessageDeleted, onMessageUndeleted, onMessageRecalled, userId, markAsSeen]);
 
     // Join/leave conversation room
     useEffect(() => {
@@ -124,9 +145,28 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
+    // Restore a deleted message (for optimistic UI update when undoing delete)
+    const restoreMessage = useCallback((message: Message) => {
+        setMessages(prev => {
+            const exists = prev.some(msg => msg.id === message.id);
+            if (exists) return prev;
+            const newMessages = [...prev, message];
+            return newMessages.sort((a, b) =>
+                new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+        });
+    }, []);
+
+    // Clear all messages (for clear history)
+    const clearMessages = useCallback(() => {
+        setMessages([]);
+    }, []);
+
     return {
         messages,
         messagesEndRef,
         loadMessages,
+        restoreMessage,
+        clearMessages,
     };
 }

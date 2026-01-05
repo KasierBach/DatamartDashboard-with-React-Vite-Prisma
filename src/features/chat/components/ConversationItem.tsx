@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { Check, Trash2, User, MessageCircle, EyeOff } from 'lucide-react';
+import { Check, Trash2, User, MessageCircle, EyeOff, Eraser } from 'lucide-react';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -20,6 +20,7 @@ interface ConversationItemProps {
     onMarkAsUnread?: (conversationId: number) => void;
     onDelete?: (conversationId: number) => void;
     onHide?: (conversationId: number) => void;
+    onClearHistory?: (conversationId: number) => void;
     onViewProfile?: (userId: number) => void;
 }
 
@@ -34,6 +35,7 @@ export function ConversationItem({
     onMarkAsUnread,
     onDelete,
     onHide,
+    onClearHistory,
     onViewProfile,
 }: ConversationItemProps) {
     const isGroup = conversation.type === 'group';
@@ -127,6 +129,18 @@ export function ConversationItem({
                 {onDelete && (
                     <>
                         <ContextMenuSeparator />
+                        {onClearHistory && (
+                            <ContextMenuItem
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClearHistory(conversation.id);
+                                }}
+                                className="gap-2"
+                            >
+                                <Eraser className="h-4 w-4" />
+                                Xóa lịch sử
+                            </ContextMenuItem>
+                        )}
                         <ContextMenuItem
                             variant="destructive"
                             onClick={(e) => {

@@ -35,10 +35,11 @@ export function ChatPage() {
         createGroup,
         availableUsers,
         hideConversation,
+        clearConversationHistory,
     } = useConversations({ userId: currentUserId });
 
     // Messages hook
-    const { messages, messagesEndRef } = useMessages({
+    const { messages, messagesEndRef, restoreMessage, clearMessages } = useMessages({
         userId: currentUserId,
         selectedConversation,
     });
@@ -58,7 +59,8 @@ export function ChatPage() {
         attachment,
         handleFileSelect,
         handleRemoveAttachment,
-    } = useChatActions({ selectedConversation });
+        handleAddEmoji,
+    } = useChatActions({ selectedConversation, restoreMessage });
 
     // Manual mark as read handler for ChatWindow interaction
     const handleWindowFocus = useCallback(() => {
@@ -107,6 +109,14 @@ export function ChatPage() {
     // State for group settings
     const [isGroupSettingsOpen, setIsGroupSettingsOpen] = useState(false);
 
+    const handleClearHistory = useCallback(async (conversationId: number) => {
+        await clearConversationHistory(conversationId);
+        // If we clear history of currently selected conversation, clear local messages
+        if (selectedConversation?.id === conversationId) {
+            clearMessages();
+        }
+    }, [clearConversationHistory, selectedConversation, clearMessages]);
+
     return (
         <>
             <div className="h-[calc(100vh-8rem)] flex bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -130,6 +140,7 @@ export function ChatPage() {
                     onViewProfile={handleViewProfile}
                     onCreateGroup={createGroup}
                     onHideConversation={hideConversation}
+                    onClearHistory={handleClearHistory}
                 />
 
                 <ChatWindow
@@ -156,6 +167,7 @@ export function ChatPage() {
                     attachment={attachment}
                     onFileSelect={handleFileSelect}
                     onRemoveAttachment={handleRemoveAttachment}
+                    onEmojiSelect={handleAddEmoji}
                     onInfoClick={() => setIsGroupSettingsOpen(true)}
                 />
             </div>

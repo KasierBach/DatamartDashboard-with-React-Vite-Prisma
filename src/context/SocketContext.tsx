@@ -33,6 +33,7 @@ interface SocketContextType {
     sendMessage: (conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string) => void;
     editMessage: (messageId: number, content: string, conversationId: number) => void;
     deleteMessage: (messageId: number, conversationId: number) => void;
+    undeleteMessage: (messageId: number, conversationId: number) => void;
     recallMessage: (messageId: number, conversationId: number) => void;
     markAsDelivered: (messageId: number) => void;
     markAsSeen: (messageId: number) => void;
@@ -44,6 +45,7 @@ interface SocketContextType {
     onMessageStatus: (callback: (data: { messageId: number; status: string; userId: number }) => void) => () => void;
     onMessageEdited: (callback: (message: Message) => void) => () => void;
     onMessageDeleted: (callback: (data: { messageId: number; userId: number }) => void) => () => void;
+    onMessageUndeleted: (callback: (data: { message: Message; userId: number; conversationId: number }) => void) => () => void;
     onMessageRecalled: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
     onNotification: (callback: (data: { conversationId: number; message: Message }) => void) => () => void;
     onConversationUpdated: (callback: (data: any) => void) => () => void;
@@ -197,6 +199,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket.emit('message:delete', { messageId, userId: user.id, conversationId });
     }, [socket, user]);
 
+    // Undo delete message (restore for self)
+    const undeleteMessage = useCallback((messageId: number, conversationId: number) => {
+        if (!socket || !user) return;
+        socket.emit('message:undelete', { messageId, userId: user.id, conversationId });
+    }, [socket, user]);
+
     // Recall message (for everyone)
     const recallMessage = useCallback((messageId: number, conversationId: number) => {
         if (!socket || !user) return;
@@ -214,6 +222,12 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         if (!socket) return () => { };
         socket.on('message:deleted', callback);
         return () => socket.off('message:deleted', callback);
+    }, [socket]);
+
+    const onMessageUndeleted = useCallback((callback: (data: { message: Message; userId: number; conversationId: number }) => void) => {
+        if (!socket) return () => { };
+        socket.on('message:undeleted', callback);
+        return () => socket.off('message:undeleted', callback);
     }, [socket]);
 
     const onMessageRecalled = useCallback((callback: (data: { messageId: number; conversationId: number }) => void) => {
@@ -249,6 +263,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             sendMessage,
             editMessage,
             deleteMessage,
+            undeleteMessage,
             recallMessage,
             markAsDelivered,
             markAsSeen,
@@ -260,6 +275,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             onMessageStatus,
             onMessageEdited,
             onMessageDeleted,
+            onMessageUndeleted,
             onMessageRecalled,
             onNotification,
             onConversationUpdated,

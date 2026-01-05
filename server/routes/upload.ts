@@ -22,11 +22,20 @@ const storage = multer.diskStorage({
 
 // Filter file types
 const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'video/mp4', 'video/webm'];
+    const allowedTypes = [
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+        'video/mp4', 'video/webm',
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'text/plain'
+    ];
     if (allowedTypes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only images and videos are allowed.'));
+        cb(new Error('Invalid file type. Only images, videos and documents (PDF, Word, Excel, TXT) are allowed.'));
     }
 };
 
@@ -47,7 +56,13 @@ router.post('/', upload.single('file'), (req: Request, res: Response) => {
 
         // Return the file URL (assuming server serves /uploads)
         const fileUrl = `/uploads/${req.file.filename}`;
-        const fileType = req.file.mimetype.startsWith('image/') ? 'image' : 'video';
+        let fileType: 'image' | 'video' | 'file' = 'file';
+
+        if (req.file.mimetype.startsWith('image/')) {
+            fileType = 'image';
+        } else if (req.file.mimetype.startsWith('video/')) {
+            fileType = 'video';
+        }
 
         res.json({
             url: fileUrl,

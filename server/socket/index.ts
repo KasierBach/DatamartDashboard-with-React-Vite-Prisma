@@ -253,6 +253,42 @@ export const initializeSocket = (io: Server) => {
             }
         });
 
+        // Undo delete message (restore for self)
+        socket.on('message:undelete', async (data: { messageId: number; userId: number; conversationId: number }) => {
+            try {
+                await prisma.messageDelete.delete({
+                    where: {
+                        message_id_user_id: {
+                            message_id: data.messageId,
+                            user_id: data.userId
+                        }
+                    }
+                });
+
+                // Fetch the restored message
+                const message = await prisma.message.findUnique({
+                    where: { id: data.messageId },
+                    include: {
+                        statuses: true,
+                        sender: {
+                            select: { id: true, username: true, name: true, avatar: true }
+                        }
+                    }
+                });
+
+                console.log('Message undeleted, emitting:', { message, conversationId: data.conversationId });
+
+                // Notify the user that the message is restored
+                socket.emit('message:undeleted', {
+                    message,
+                    userId: data.userId,
+                    conversationId: data.conversationId
+                });
+            } catch (error) {
+                console.error('Error undeleting message:', error);
+            }
+        });
+
         // Recall message (for everyone)
         socket.on('message:recall', async (data: { messageId: number; userId: number; conversationId: number }) => {
             try {

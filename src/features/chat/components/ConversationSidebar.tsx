@@ -39,6 +39,7 @@ interface ConversationSidebarProps {
     onViewProfile: (userId: number) => void;
     onCreateGroup: (name: string, memberIds: number[]) => Promise<void>;
     onHideConversation: (conversationId: number) => Promise<void>;
+    onClearHistory: (conversationId: number) => Promise<void>;
 }
 
 export function ConversationSidebar({
@@ -61,9 +62,18 @@ export function ConversationSidebar({
     onViewProfile,
     onCreateGroup,
     onHideConversation,
+    onClearHistory,
 }: ConversationSidebarProps) {
     const [isCreateGroupOpen, setIsCreateGroupOpen] = useState(false);
     const [deletingConversationId, setDeletingConversationId] = useState<number | null>(null);
+    const [clearingHistoryId, setClearingHistoryId] = useState<number | null>(null);
+
+    const handleConfirmClearHistory = () => {
+        if (clearingHistoryId) {
+            onClearHistory(clearingHistoryId);
+            setClearingHistoryId(null);
+        }
+    };
 
     const handleConfirmDelete = () => {
         const id = deletingConversationId;
@@ -177,6 +187,7 @@ export function ConversationSidebar({
                                         onClick={() => onSelectConversation(conv)}
                                         onDelete={(id) => setDeletingConversationId(id)}
                                         onHide={onHideConversation}
+                                        onClearHistory={(id) => setClearingHistoryId(id)}
                                         onMarkAsRead={onMarkAsRead}
                                         onMarkAsUnread={onMarkAsUnread}
                                         onViewProfile={onViewProfile}
@@ -212,6 +223,27 @@ export function ConversationSidebar({
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             Xóa vĩnh viễn
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
+            <AlertDialog open={!!clearingHistoryId} onOpenChange={(open) => !open && setClearingHistoryId(null)}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Xóa lịch sử trò chuyện?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Hành động này sẽ xóa tất cả tin nhắn trong cuộc trò chuyện này ở phía bạn.
+                            Người khác vẫn sẽ giữ lại tin nhắn của họ.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>Hủy</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handleConfirmClearHistory}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                            Xóa lịch sử
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

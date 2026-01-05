@@ -1,10 +1,12 @@
 import { useState, useRef, useCallback } from 'react';
 import { useSocket } from '@/context/SocketContext';
 import { API_ENDPOINTS } from '@/config/api';
+import { toast } from 'sonner';
 import type { Message, Conversation } from '../types';
 
 interface UseChatActionsProps {
     selectedConversation: Conversation | null;
+    restoreMessage?: (message: Message) => void;
 }
 
 interface UseChatActionsReturn {
@@ -21,15 +23,25 @@ interface UseChatActionsReturn {
     attachment: File | null;
     handleFileSelect: (file: File) => void;
     handleRemoveAttachment: () => void;
+    handleAddEmoji: (emoji: string) => void;
 }
 
-export function useChatActions({ selectedConversation }: UseChatActionsProps): UseChatActionsReturn {
+export function useChatActions({ selectedConversation, restoreMessage }: UseChatActionsProps): UseChatActionsReturn {
     const [newMessage, setNewMessage] = useState('');
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
     const [attachment, setAttachment] = useState<File | null>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const { sendMessage, editMessage, deleteMessage, recallMessage, startTyping, stopTyping } = useSocket();
+    const { sendMessage, editMessage, deleteMessage, undeleteMessage, recallMessage, startTyping, stopTyping } = useSocket();
+
+    // Handle emoji select
+    const handleAddEmoji = useCallback((emoji: string) => {
+        setNewMessage(prev => prev + emoji);
+        // Delay focus slightly to ensure state is committed
+        setTimeout(() => {
+            inputRef.current?.focus();
+        }, 0);
+    }, []);
 
     // Handle file select
     const handleFileSelect = useCallback((file: File) => {
@@ -98,11 +110,29 @@ export function useChatActions({ selectedConversation }: UseChatActionsProps): U
         setNewMessage('');
     }, []);
 
-    // Delete message (for self)
+    // Delete message (for self) with undo option
     const handleDeleteMessage = useCallback((msg: Message) => {
         if (!selectedConversation) return;
         deleteMessage(msg.id, selectedConversation.id);
-    }, [selectedConversation, deleteMessage]);
+
+        // Show toast with undo button
+        toast('Đã xóa tin nhắn', {
+            description: msg.content.length > 50 ? msg.content.substring(0, 50) + '...' : msg.content,
+            duration: 10000,
+            action: {
+                label: 'Hoàn tác',
+                onClick: () => {
+                    if (selectedConversation) {
+                        undeleteMessage(msg.id, selectedConversation.id);
+                        // Immediately restore message in UI (optimistic update)
+                        if (restoreMessage) {
+                            restoreMessage(msg);
+                        }
+                    }
+                }
+            }
+        });
+    }, [selectedConversation, deleteMessage, undeleteMessage, restoreMessage]);
 
     // Recall message (for everyone)
     const handleRecallMessage = useCallback((msg: Message) => {
@@ -132,5 +162,6 @@ export function useChatActions({ selectedConversation }: UseChatActionsProps): U
         attachment,
         handleFileSelect,
         handleRemoveAttachment,
+        handleAddEmoji,
     };
 }

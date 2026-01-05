@@ -25,7 +25,7 @@ export interface Message {
     is_edited?: boolean;
     is_recalled?: boolean;
     attachment_url?: string;
-    attachment_type?: 'image' | 'video';
+    attachment_type?: 'image' | 'video' | 'file';
     statuses: MessageStatus[];
     sender?: {
         id: number;

@@ -27,6 +27,7 @@ interface UseConversationsReturn {
     markConversationAsUnread: (conversationId: number) => Promise<void>;
     createGroup: (name: string, members: number[]) => Promise<void>;
     hideConversation: (conversationId: number) => Promise<void>;
+    clearConversationHistory: (conversationId: number) => Promise<void>;
 }
 
 export function useConversations({ userId }: UseConversationsProps): UseConversationsReturn {
@@ -255,6 +256,26 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
         }
     }, [userId, selectedConversation]);
 
+    // Clear conversation history (Delete all messages for self)
+    const clearConversationHistory = useCallback(async (conversationId: number) => {
+        if (!userId) return;
+        try {
+            const res = await fetch(`${API_ENDPOINTS.MESSAGES}/conversations/${conversationId}/clear-history?userId=${userId}`, {
+                method: 'PUT'
+            });
+            if (res.ok) {
+                setConversations(prev => prev.map(c => {
+                    if (c.id === conversationId) {
+                        return { ...c, messages: [] }; // Clear preview
+                    }
+                    return c;
+                }));
+            }
+        } catch (error) {
+            console.error('Error clearing history:', error);
+        }
+    }, [userId]);
+
     return {
         conversations,
         selectedConversation,
@@ -275,5 +296,6 @@ export function useConversations({ userId }: UseConversationsProps): UseConversa
         markConversationAsUnread,
         createGroup,
         hideConversation,
+        clearConversationHistory,
     };
 }

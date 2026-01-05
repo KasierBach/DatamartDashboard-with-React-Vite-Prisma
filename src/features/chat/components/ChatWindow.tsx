@@ -25,6 +25,7 @@ interface ChatWindowProps {
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
+    onEmojiSelect: (emoji: string) => void;
     onFocus?: () => void;
     onInfoClick?: () => void;
 }
@@ -49,6 +50,7 @@ export function ChatWindow({
     attachment,
     onFileSelect,
     onRemoveAttachment,
+    onEmojiSelect,
     onFocus,
     onInfoClick,
 }: ChatWindowProps) {
@@ -106,6 +108,7 @@ export function ChatWindow({
                 attachment={attachment}
                 onFileSelect={onFileSelect}
                 onRemoveAttachment={onRemoveAttachment}
+                onEmojiSelect={onEmojiSelect}
             />
         </div>
     );

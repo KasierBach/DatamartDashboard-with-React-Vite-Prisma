@@ -213,7 +213,14 @@ router.get('/conversations/:id/messages', async (req: Request, res: Response) =>
         const userId = parseInt(req.query.userId as string);
 
         const messages = await prisma.message.findMany({
-            where: { conversation_id: conversationId },
+            where: {
+                conversation_id: conversationId,
+                deletedFor: {
+                    none: {
+                        user_id: userId
+                    }
+                }
+            },
             include: {
                 statuses: true,
                 sender: {
@@ -699,6 +706,60 @@ router.post('/groups/:id/leave', async (req: Request, res: Response) => {
     } catch (error) {
         console.error('Error leaving group:', error);
         res.status(500).json({ error: 'Failed to leave group' });
+    }
+});
+
+// Clear chat history (Soft Delete all messages for user)
+router.put('/conversations/:id/clear-history', async (req: Request, res: Response) => {
+    try {
+        const conversationId = parseInt(req.params.id);
+        const userId = parseInt(req.query.userId as string);
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        // Check if user is member
+        const member = await prisma.conversationMember.findUnique({
+            where: {
+                conversation_id_user_id: {
+                    conversation_id: conversationId,
+                    user_id: userId
+                }
+            }
+        });
+
+        if (!member) {
+            return res.status(403).json({ error: 'Not a member of this conversation' });
+        }
+
+        // Find all messages in this conversation
+        const messages = await prisma.message.findMany({
+            where: { conversation_id: conversationId },
+            select: { id: true }
+        });
+
+        if (messages.length > 0) {
+            // Bulk insert into message_deletes
+            // Note: Prisma doesn't support ignoreDuplicates for createMany in all DBs, 
+            // but for this feature we want to ensure all messages are marked deleted.
+            // Since we might have already deleted some messages, we should only insert ones that aren't there.
+            // However, a simpler approach for "clear history" is to use a transaction or just loop if createMany w/ skipDuplicates isn't available/reliable.
+            // Postgres supports skipDuplicates.
+
+            await prisma.messageDelete.createMany({
+                data: messages.map(msg => ({
+                    message_id: msg.id,
+                    user_id: userId
+                })),
+                skipDuplicates: true
+            });
+        }
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error clearing history:', error);
+        res.status(500).json({ error: 'Failed to clear history' });
     }
 });
 

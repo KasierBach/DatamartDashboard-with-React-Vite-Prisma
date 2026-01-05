@@ -1,4 +1,4 @@
-import { Image } from 'lucide-react';
+import { Paperclip } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useRef } from 'react';
 
@@ -32,7 +32,7 @@ export function AttachmentButton({ onFileSelect, disabled }: AttachmentButtonPro
                 type="file"
                 ref={fileInputRef}
                 className="hidden"
-                accept="image/*,video/*"
+                accept="*/*"
                 onChange={handleFileChange}
             />
             <Button
@@ -41,9 +41,9 @@ export function AttachmentButton({ onFileSelect, disabled }: AttachmentButtonPro
                 size="icon"
                 disabled={disabled}
                 onClick={() => fileInputRef.current?.click()}
-                title="Gửi ảnh/video"
+                title="Đính kèm file"
             >
-                <Image className="h-5 w-5 text-muted-foreground hover:text-primary" />
+                <Paperclip className="h-5 w-5 text-muted-foreground hover:text-primary" />
             </Button>
         </>
     );
