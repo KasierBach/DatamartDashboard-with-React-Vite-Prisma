@@ -111,27 +111,56 @@ export function MessageBubble({
                                                 className="w-full h-auto max-h-80"
                                             />
                                         ) : (
-                                            <a
-                                                href={attachmentUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
+                                            <div
                                                 className={cn(
-                                                    "flex items-center gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background/80 transition-colors w-full",
+                                                    "flex items-center gap-3 p-3 rounded-lg border bg-background/50 hover:bg-background/80 transition-colors w-full relative group/file",
                                                     isOwn ? "text-primary-foreground" : "text-foreground"
                                                 )}
-                                                download
                                             >
                                                 <div className="h-10 w-10 rounded bg-primary/10 flex items-center justify-center shrink-0">
                                                     <FileText className="h-6 w-6 text-primary" />
                                                 </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-semibold truncate">
+                                                <a
+                                                    href={attachmentUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="flex-1 min-w-0"
+                                                    download
+                                                >
+                                                    <p className="text-sm font-semibold truncate hover:underline">
                                                         {message.attachment_url.split('/').pop()}
                                                     </p>
                                                     <p className="text-[10px] opacity-70">Tệp đính kèm</p>
+                                                </a>
+                                                <div className="flex items-center gap-1">
+                                                    <a
+                                                        href={attachmentUrl}
+                                                        download
+                                                        className={cn(
+                                                            "p-1 rounded hover:bg-background/50 transition-colors",
+                                                            "opacity-50 group-hover/file:opacity-100"
+                                                        )}
+                                                        title="Tải xuống"
+                                                    >
+                                                        <Download className="h-4 w-4" />
+                                                    </a>
+                                                    {isOwn && (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                onRecall(message);
+                                                            }}
+                                                            className={cn(
+                                                                "p-1 rounded hover:bg-background/50 transition-colors text-destructive-foreground",
+                                                                "opacity-50 group-hover/file:opacity-100"
+                                                            )}
+                                                            title="Thu hồi"
+                                                        >
+                                                            <RotateCcw className="h-4 w-4" />
+                                                        </button>
+                                                    )}
                                                 </div>
-                                                <Download className="h-4 w-4 shrink-0 opacity-50 group-hover:opacity-100" />
-                                            </a>
+                                            </div>
                                         )}
                                     </div>
                                 )}

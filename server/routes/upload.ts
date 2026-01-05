@@ -15,8 +15,11 @@ const storage = multer.diskStorage({
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname));
+        // Encode filename to handle special characters effectively, then sanitize
+        const originalName = Buffer.from(file.originalname, 'latin1').toString('utf8');
+        const sanitizedParams = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const uniquePrefix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, `${uniquePrefix}-${sanitizedParams}`);
     }
 });
 

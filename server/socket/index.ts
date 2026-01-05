@@ -1,10 +1,12 @@
 import { Server, Socket } from 'socket.io';
 import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
 
 const prisma = new PrismaClient();
 
-// Track online users: { odockrocket: { odockrocket: number, name: string } }
-const onlineUsers = new Map<string, { odockrocket: number; name: string }>();
+// Track online users: { userId: number, name: string }
+const onlineUsers = new Map<string, { userId: number; name: string }>();
 
 export const initializeSocket = (io: Server) => {
     io.on('connection', (socket: Socket) => {
@@ -12,7 +14,7 @@ export const initializeSocket = (io: Server) => {
 
         // User joins with their info
         socket.on('user:join', async (userData: { userId: number; name: string }) => {
-            onlineUsers.set(socket.id, { odockrocket: userData.userId, name: userData.name });
+            onlineUsers.set(socket.id, { userId: userData.userId, name: userData.name });
 
             // Join user's personal room for direct messages
             socket.join(`user:${userData.userId}`);
@@ -299,11 +301,29 @@ export const initializeSocket = (io: Server) => {
                     return;
                 }
 
+                // Delete file if exists
+                if (message.attachment_url) {
+                    try {
+                        const filename = message.attachment_url.split('/').pop();
+                        if (filename) {
+                            const filePath = path.join(__dirname, '../uploads', filename);
+                            if (fs.existsSync(filePath)) {
+                                fs.unlinkSync(filePath);
+                                console.log(`Deleted file for recalled message: ${filePath}`);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error deleting file:', err);
+                    }
+                }
+
                 await prisma.message.update({
                     where: { id: data.messageId },
                     data: {
                         is_recalled: true,
-                        content: ''
+                        content: '',
+                        attachment_url: null, // Clear URL to reflect deletion
+                        attachment_type: null
                     }
                 });
 

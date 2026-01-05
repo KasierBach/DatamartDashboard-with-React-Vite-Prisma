@@ -28,6 +28,7 @@ interface ChatWindowProps {
     onEmojiSelect: (emoji: string) => void;
     onFocus?: () => void;
     onInfoClick?: () => void;
+    isSending?: boolean;
 }
 
 export function ChatWindow({
@@ -53,6 +54,7 @@ export function ChatWindow({
     onEmojiSelect,
     onFocus,
     onInfoClick,
+    isSending,
 }: ChatWindowProps) {
     if (!conversation) {
         return (
@@ -109,6 +111,7 @@ export function ChatWindow({
                 onFileSelect={onFileSelect}
                 onRemoveAttachment={onRemoveAttachment}
                 onEmojiSelect={onEmojiSelect}
+                isSending={isSending}
             />
         </div>
     );

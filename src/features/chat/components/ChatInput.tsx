@@ -17,6 +17,7 @@ interface ChatInputProps {
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
     onEmojiSelect: (emoji: string) => void;
+    isSending?: boolean;
 }
 
 export function ChatInput({
@@ -31,6 +32,7 @@ export function ChatInput({
     onFileSelect,
     onRemoveAttachment,
     onEmojiSelect,
+    isSending,
 }: ChatInputProps) {
     return (
         <div className="p-4 border-t">
@@ -84,12 +86,12 @@ export function ChatInput({
                     ref={inputRef as React.RefObject<HTMLInputElement>}
                     value={value}
                     onChange={onChange}
-                    onKeyPress={(e) => e.key === 'Enter' && onSend()}
                     onFocus={onFocus}
                     placeholder={attachment ? "Thêm chú thích..." : "Nhập tin nhắn..."}
                     className="flex-1"
+                    disabled={isSending}
                 />
-                <Button type="submit" size="icon" disabled={!value.trim() && !attachment}>
+                <Button type="submit" size="icon" disabled={(!!(!value.trim() && !attachment)) || isSending}>
                     <Send className="h-4 w-4" />
                 </Button>
             </form>

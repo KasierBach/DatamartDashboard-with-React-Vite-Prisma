@@ -24,12 +24,14 @@ interface UseChatActionsReturn {
     handleFileSelect: (file: File) => void;
     handleRemoveAttachment: () => void;
     handleAddEmoji: (emoji: string) => void;
+    isSending: boolean;
 }
 
 export function useChatActions({ selectedConversation, restoreMessage }: UseChatActionsProps): UseChatActionsReturn {
     const [newMessage, setNewMessage] = useState('');
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
     const [attachment, setAttachment] = useState<File | null>(null);
+    const [isSending, setIsSending] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
 
     const { sendMessage, editMessage, deleteMessage, undeleteMessage, recallMessage, startTyping, stopTyping } = useSocket();
@@ -55,8 +57,10 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
 
     // Send message
     const handleSendMessage = useCallback(async () => {
+        if (isSending) return;
         if ((!newMessage.trim() && !attachment) || !selectedConversation) return;
 
+        setIsSending(true);
         let attachmentUrl;
         let attachmentType;
 
@@ -94,8 +98,10 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
             inputRef.current?.focus();
         } catch (error) {
             console.error('Error sending message:', error);
+        } finally {
+            setIsSending(false);
         }
-    }, [newMessage, attachment, selectedConversation, editingMessage, sendMessage, editMessage, stopTyping]);
+    }, [newMessage, attachment, selectedConversation, editingMessage, sendMessage, editMessage, stopTyping, isSending]);
 
     // Start editing a message
     const handleStartEdit = useCallback((msg: Message) => {
@@ -163,5 +169,6 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
         handleFileSelect,
         handleRemoveAttachment,
         handleAddEmoji,
+        isSending,
     };
 }

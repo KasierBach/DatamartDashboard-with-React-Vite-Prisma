@@ -60,6 +60,7 @@ export function ChatPage() {
         handleFileSelect,
         handleRemoveAttachment,
         handleAddEmoji,
+        isSending,
     } = useChatActions({ selectedConversation, restoreMessage });
 
     // Manual mark as read handler for ChatWindow interaction
@@ -71,7 +72,7 @@ export function ChatPage() {
 
     // Check if user is online
     const isUserOnline = (checkUserId: number): boolean => {
-        return onlineUsers.some(u => u.odockrocket === checkUserId);
+        return onlineUsers.some(u => u.userId === checkUserId);
     };
 
     // Handle conversation selection
@@ -169,6 +170,7 @@ export function ChatPage() {
                     onRemoveAttachment={handleRemoveAttachment}
                     onEmojiSelect={handleAddEmoji}
                     onInfoClick={() => setIsGroupSettingsOpen(true)}
+                    isSending={isSending}
                 />
             </div>
 

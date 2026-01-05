@@ -28,7 +28,7 @@ interface TypingUser {
 interface SocketContextType {
     socket: Socket | null;
     isConnected: boolean;
-    onlineUsers: { odockrocket: number; name: string }[];
+    onlineUsers: { userId: number; name: string }[];
     typingUsers: Map<number, TypingUser[]>;
     sendMessage: (conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string) => void;
     editMessage: (messageId: number, content: string, conversationId: number) => void;
@@ -62,7 +62,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
-    const [onlineUsers, setOnlineUsers] = useState<{ odockrocket: number; name: string }[]>([]);
+    const [onlineUsers, setOnlineUsers] = useState<{ userId: number; name: string }[]>([]);
     const [typingUsers] = useState<Map<number, TypingUser[]>>(new Map());
     const [unreadCounts] = useState<Map<number, number>>(new Map());
     const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
