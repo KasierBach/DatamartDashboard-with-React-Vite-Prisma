@@ -1,15 +1,27 @@
-import { useState, useMemo } from "react"
-import { useDebounce } from "@/hooks/use-debounce"
+import { useState, useMemo, useEffect } from "react"
 import { AddRecordDialog } from "../components/AddRecordDialog"
 import { EditRecordDialog } from "../components/EditRecordDialog"
 import { StudentTable, StudentToolbar, SortField } from "../components/students"
 import { DataRecord, SortDirection } from "../types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 
 interface StudentListPageProps {
     data: DataRecord[]
+    total: number
+    page: number
+    limit: number
+    search: string
+    sortField: string
+    sortOrder: string
+    status: string
+    onPageChange: (page: number) => void
+    onLimitChange: (limit: number) => void
+    onSearchChange: (search: string) => void
+    onSortChange: (field: string, order: string) => void
+    onStatusChange: (status: string) => void
     onAdd: (record: DataRecord) => void
     onUpdate: (record: DataRecord) => void
     onDelete: (id: number) => void
@@ -20,6 +32,18 @@ interface StudentListPageProps {
 
 export function StudentListPage({
     data,
+    total,
+    page,
+    limit,
+    search,
+    sortField,
+    sortOrder,
+    status,
+    onPageChange,
+    onLimitChange,
+    onSearchChange,
+    onSortChange,
+    onStatusChange,
     onAdd,
     onUpdate,
     onDelete,
@@ -27,85 +51,24 @@ export function StudentListPage({
     onReset,
     isRefreshing
 }: StudentListPageProps) {
-    const [searchTerm, setSearchTerm] = useState("")
-    const debouncedSearchTerm = useDebounce(searchTerm, 300)
-    const [sortField, setSortField] = useState<SortField | null>(null)
-    const [sortDirection, setSortDirection] = useState<SortDirection>(null)
-    const [statusFilter, setStatusFilter] = useState<string>("all")
-    const [currentPage, setCurrentPage] = useState(1)
-    const itemsPerPage = 10
     const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
     const [editingRecord, setEditingRecord] = useState<DataRecord | null>(null)
+    const [jumpValue, setJumpValue] = useState(page.toString())
 
-    const existingIdsSet = useMemo(() => new Set(data.map(d => d.id)), [data])
+    // Sync jumpValue when page changes from external (Next/Prev)
+    useEffect(() => {
+        setJumpValue(page.toString())
+    }, [page])
 
-    // Lọc và sắp xếp dữ liệu
-    const filteredAndSortedData = useMemo(() => {
-        const lowerTerm = debouncedSearchTerm.toLowerCase()
-        let result = data.filter(
-            (item) =>
-                (item.id.toString().includes(lowerTerm) ||
-                    item.student_uid?.toLowerCase().includes(lowerTerm) ||
-                    item.school_name?.toLowerCase().includes(lowerTerm) ||
-                    item.province_name?.toLowerCase().includes(lowerTerm) ||
-                    item.grade?.toLowerCase().includes(lowerTerm) ||
-                    item.level_name?.toLowerCase().includes(lowerTerm) ||
-                    item.type_name?.toLowerCase().includes(lowerTerm) ||
-                    item.year?.toString().includes(lowerTerm) ||
-                    item.gpa_overall?.toString().includes(lowerTerm) ||
-                    item.attendance_rate?.toString().includes(lowerTerm) ||
-                    item.test_math?.toString().includes(lowerTerm) ||
-                    item.test_literature?.toString().includes(lowerTerm) ||
-                    item.test_average?.toString().includes(lowerTerm) ||
-                    item.composite_score?.toString().includes(lowerTerm) ||
-                    item.status?.toLowerCase().includes(lowerTerm) ||
-                    item.lastUpdate?.toLowerCase().includes(lowerTerm)) &&
-                (statusFilter === "all" || item.status === statusFilter)
-        )
-
-        if (sortField && sortDirection) {
-            result = [...result].sort((a, b) => {
-                // @ts-ignore - Dynamic key access with potential undefined values
-                let aValue: string | number = a[sortField] || ""
-                // @ts-ignore
-                let bValue: string | number = b[sortField] || ""
-
-                if (typeof aValue === "string" && typeof bValue === "string") {
-                    aValue = aValue.toLowerCase()
-                    bValue = bValue.toLowerCase()
-                }
-
-                if (aValue < bValue) return sortDirection === "asc" ? -1 : 1
-                if (aValue > bValue) return sortDirection === "asc" ? 1 : -1
-                return 0
-            })
-        }
-
-        return result
-    }, [data, debouncedSearchTerm, statusFilter, sortField, sortDirection])
-
-    const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
-    const paginatedData = useMemo(() => {
-        const start = (currentPage - 1) * itemsPerPage
-        return filteredAndSortedData.slice(start, start + itemsPerPage)
-    }, [filteredAndSortedData, currentPage])
+    const existingIdsSet = useMemo(() => new Set(data.map(d => (d.id as number))), [data])
 
     const handleSort = (field: SortField) => {
-        setCurrentPage(1) // Reset to first page on sort
+        let newOrder: string = 'asc';
         if (sortField === field) {
-            if (sortDirection === "asc") {
-                setSortDirection("desc")
-            } else if (sortDirection === "desc") {
-                setSortDirection(null)
-                setSortField(null)
-            } else {
-                setSortDirection("asc")
-            }
-        } else {
-            setSortField(field)
-            setSortDirection("asc")
+            newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
         }
+        onSortChange(field, newOrder);
     }
 
     const handleOpenEdit = (record: DataRecord) => {
@@ -118,12 +81,12 @@ export function StudentListPage({
         setEditingRecord(null)
     }
 
-    // Xuất dữ liệu ra file CSV
     const handleExport = () => {
+        toast.info("Tải một file lớn có thể chậm. Chức năng xuất tất cả 58k dòng nên được thực hiện ở Server.")
         const headers = ["ID", "Student UID", "School", "Province", "Grade", "Level", "Type", "GPA", "Math", "Lit", "Composite", "Status", "Last Update"]
         const csvContent = [
             headers.join(","),
-            ...filteredAndSortedData.map(item =>
+            ...data.map(item =>
                 [
                     item.id,
                     `"${item.student_uid || ""}"`,
@@ -151,10 +114,9 @@ export function StudentListPage({
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
-        link.style.visibility = "hidden"
 
         toast.success("Xuất dữ liệu thành công!", {
-            description: `Đã xuất ${filteredAndSortedData.length} records ra file CSV.`
+            description: `Đã xuất ${data.length} records ra file CSV.`
         })
     }
 
@@ -178,10 +140,10 @@ export function StudentListPage({
                 </CardHeader>
                 <CardContent>
                     <StudentToolbar
-                        searchTerm={searchTerm}
-                        onSearchChange={(val) => { setSearchTerm(val); setCurrentPage(1); }}
-                        statusFilter={statusFilter}
-                        onFilterChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}
+                        searchTerm={search}
+                        onSearchChange={(val) => { onSearchChange(val); onPageChange(1); }}
+                        statusFilter={status}
+                        onFilterChange={(val) => { onStatusChange(val); onPageChange(1); }}
                         onRefresh={onRefresh}
                         onReset={onReset}
                         onExport={handleExport}
@@ -191,9 +153,9 @@ export function StudentListPage({
 
                     <div className="mt-6">
                         <StudentTable
-                            data={paginatedData}
-                            sortField={sortField}
-                            sortDirection={sortDirection}
+                            data={data}
+                            sortField={sortField as SortField}
+                            sortDirection={sortOrder as SortDirection}
                             onSort={handleSort}
                             onEdit={handleOpenEdit}
                             onDelete={onDelete}
@@ -203,22 +165,71 @@ export function StudentListPage({
                     {/* Pagination Controls */}
                     <div className="mt-6 flex items-center justify-between border-t border-muted pt-4">
                         <div className="text-sm text-muted-foreground">
-                            Trang {currentPage} / {totalPages || 1} (Hiển thị {paginatedData.length} / {filteredAndSortedData.length} kết quả)
+                            Trang {page} / {Math.ceil(total / limit) || 1} (Hiển thị {data.length} / {total} kết quả)
                         </div>
                         <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 mx-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Tới trang:</span>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={Math.ceil(total / limit)}
+                                    className="w-16 h-8 text-xs px-2"
+                                    value={jumpValue}
+                                    onChange={(e) => setJumpValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            let val = parseInt(jumpValue);
+                                            const maxPage = Math.ceil(total / limit) || 1;
+                                            if (isNaN(val)) {
+                                                setJumpValue(page.toString());
+                                                return;
+                                            }
+                                            if (val < 1) val = 1;
+                                            if (val > maxPage) val = maxPage;
+
+                                            onPageChange(val);
+                                            setJumpValue(val.toString());
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        let val = parseInt(jumpValue);
+                                        const maxPage = Math.ceil(total / limit) || 1;
+                                        if (isNaN(val)) {
+                                            setJumpValue(page.toString());
+                                            return;
+                                        }
+                                        if (val < 1) val = 1;
+                                        if (val > maxPage) val = maxPage;
+
+                                        onPageChange(val);
+                                        setJumpValue(val.toString());
+                                    }}
+                                />
+                            </div>
+                            <select
+                                className="text-xs border rounded p-1"
+                                value={limit}
+                                onChange={(e) => onLimitChange(Number(e.target.value))}
+                            >
+                                <option value={10}>10 dòng</option>
+                                <option value={20}>20 dòng</option>
+                                <option value={50}>50 dòng</option>
+                                <option value={100}>100 dòng</option>
+                            </select>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                disabled={currentPage === 1}
+                                onClick={() => onPageChange(Math.max(1, page - 1))}
+                                disabled={page === 1}
                             >
                                 Trước
                             </Button>
                             <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                                disabled={currentPage === totalPages || totalPages === 0}
+                                onClick={() => onPageChange(Math.min(Math.ceil(total / limit), page + 1))}
+                                disabled={page === Math.ceil(total / limit) || total === 0}
                             >
                                 Sau
                             </Button>
@@ -228,9 +239,8 @@ export function StudentListPage({
                     {/* Pagination Info */}
                     <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
                         <div>
-                            Hiển thị {filteredAndSortedData.length} / {data.length} records
-                            {searchTerm && ` (tìm: "${searchTerm}")`}
-                            {statusFilter !== "all" && ` (lọc: ${statusFilter})`}
+                            Dữ liệu tải từ máy chủ: {total.toLocaleString()} records tổng cộng.
+                            {search && ` (tìm: "${search}")`}
                         </div>
                     </div>
                 </CardContent>

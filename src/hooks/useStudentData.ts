@@ -6,6 +6,14 @@ import { DataRecord, ProvinceSummaryRecord, SchoolSummaryRecord } from "@/types"
 
 export function useStudentData() {
     const [data, setData] = useState<DataRecord[]>([])
+    const [total, setTotal] = useState(0)
+    const [page, setPage] = useState(1)
+    const [limit, setLimit] = useState(50)
+    const [search, setSearch] = useState('')
+    const [sortField, setSortField] = useState('id')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+    const [status, setStatus] = useState('all')
+
     const [provinces, setProvinces] = useState<ProvinceSummaryRecord[]>([])
     const [schools, setSchools] = useState<SchoolSummaryRecord[]>([])
     const [isRefreshing, setIsRefreshing] = useState(false)
@@ -14,8 +22,17 @@ export function useStudentData() {
     // Load Data from API
     const loadData = async () => {
         try {
+            const queryParams = new URLSearchParams({
+                page: page.toString(),
+                limit: limit.toString(),
+                search,
+                sortField,
+                sortOrder,
+                status
+            });
+
             const [studentsRes, provincesRes, schoolsRes] = await Promise.all([
-                fetch(API_ENDPOINTS.STUDENT_DETAILS),
+                fetch(`${API_ENDPOINTS.STUDENT_DETAILS}?${queryParams.toString()}`),
                 fetch(API_ENDPOINTS.STUDENT_PROVINCES),
                 fetch(API_ENDPOINTS.STUDENT_SCHOOLS)
             ]);
@@ -24,16 +41,24 @@ export function useStudentData() {
                 throw new Error("Failed to fetch some data categories");
             }
 
-            const [studentsData, provincesData, schoolsData] = await Promise.all([
+            const [studentsResult, provincesData, schoolsData] = await Promise.all([
                 studentsRes.json(),
                 provincesRes.json(),
                 schoolsRes.json()
             ]);
 
-            setData(studentsData);
+            // Handle the new response format: { data, total, page, ... }
+            if (studentsResult.data) {
+                setData(studentsResult.data);
+                setTotal(studentsResult.total);
+            } else {
+                // Fallback for old API if any
+                setData(studentsResult);
+                setTotal(studentsResult.length);
+            }
+
             setProvinces(provincesData);
             setSchools(schoolsData);
-            toast.success("Đã tải dữ liệu từ Database!");
         } catch (error) {
             console.error("Error loading data:", error);
             toast.error("Không thể kết nối Server! Vui lòng kiểm tra.");
@@ -45,7 +70,7 @@ export function useStudentData() {
         if (user) {
             loadData();
         }
-    }, [user]);
+    }, [user, page, limit, search, sortField, sortOrder, status]);
 
     // Actions
     const handleRefresh = async () => {
@@ -72,6 +97,19 @@ export function useStudentData() {
 
     return {
         data,
+        total,
+        page,
+        limit,
+        search,
+        sortField,
+        sortOrder,
+        status,
+        setPage,
+        setLimit,
+        setSearch,
+        setSortField,
+        setSortOrder,
+        setStatus,
         provinces,
         schools,
         isRefreshing,

@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useDebounce } from "@/hooks/use-debounce"
 import { ProvinceSummaryRecord, SortDirection } from "../types"
 import { ProvinceTable, ProvinceSortField } from "../components/students"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface ProvinceListPageProps {
     data: ProvinceSummaryRecord[]
@@ -15,6 +16,15 @@ export function ProvinceListPage({ data }: ProvinceListPageProps) {
     const debouncedSearchTerm = useDebounce(searchTerm, 300)
     const [sortField, setSortField] = useState<ProvinceSortField | null>(null)
     const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+
+    const [currentPage, setCurrentPage] = useState(1)
+    const itemsPerPage = 10
+    const [jumpValue, setJumpValue] = useState(currentPage.toString())
+
+    // Sync jumpValue when currentPage changes
+    useEffect(() => {
+        setJumpValue(currentPage.toString())
+    }, [currentPage])
 
     const filteredAndSortedData = useMemo(() => {
         const lowerTerm = debouncedSearchTerm.toLowerCase()
@@ -45,7 +55,14 @@ export function ProvinceListPage({ data }: ProvinceListPageProps) {
         return result
     }, [data, debouncedSearchTerm, sortField, sortDirection])
 
+    const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+    const paginatedData = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage
+        return filteredAndSortedData.slice(start, start + itemsPerPage)
+    }, [filteredAndSortedData, currentPage])
+
     const handleSort = (field: ProvinceSortField) => {
+        setCurrentPage(1)
         if (sortField === field) {
             if (sortDirection === "asc") setSortDirection("desc")
             else if (sortDirection === "desc") {
@@ -80,20 +97,79 @@ export function ProvinceListPage({ data }: ProvinceListPageProps) {
                                 placeholder="Tìm kiếm tỉnh..."
                                 className="pl-8"
                                 value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
+                                onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                             />
                         </div>
                     </div>
                 </CardHeader>
                 <CardContent>
                     <ProvinceTable
-                        data={filteredAndSortedData}
+                        data={paginatedData}
                         sortField={sortField}
                         sortDirection={sortDirection}
                         onSort={handleSort}
                     />
-                    <div className="mt-4 text-sm text-muted-foreground">
-                        Hiển thị {filteredAndSortedData.length} kết quả
+
+                    {/* Pagination */}
+                    <div className="mt-6 flex items-center justify-between border-t border-muted pt-4">
+                        <div className="text-sm text-muted-foreground">
+                            Trang {currentPage} / {totalPages || 1} (Hiển thị {paginatedData.length} / {filteredAndSortedData.length} kết quả)
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 mx-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Tới trang:</span>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={totalPages}
+                                    className="w-16 h-8 text-xs px-2"
+                                    value={jumpValue}
+                                    onChange={(e) => setJumpValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            let val = parseInt(jumpValue);
+                                            if (isNaN(val)) {
+                                                setJumpValue(currentPage.toString());
+                                                return;
+                                            }
+                                            if (val < 1) val = 1;
+                                            if (val > totalPages) val = totalPages;
+
+                                            setCurrentPage(val);
+                                            setJumpValue(val.toString());
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        let val = parseInt(jumpValue);
+                                        if (isNaN(val)) {
+                                            setJumpValue(currentPage.toString());
+                                            return;
+                                        }
+                                        if (val < 1) val = 1;
+                                        if (val > totalPages) val = totalPages;
+
+                                        setCurrentPage(val);
+                                        setJumpValue(val.toString());
+                                    }}
+                                />
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                disabled={currentPage === 1}
+                            >
+                                Trước
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={currentPage === totalPages || totalPages === 0}
+                            >
+                                Sau
+                            </Button>
+                        </div>
                     </div>
                 </CardContent>
             </Card>

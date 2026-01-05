@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useDebounce } from "@/hooks/use-debounce"
 import { SchoolSummaryRecord, SortDirection } from "../types"
 import { SchoolTable, SchoolSortField } from "../components/students"
@@ -19,6 +19,12 @@ export function SchoolListPage({ data }: SchoolListPageProps) {
 
     const [currentPage, setCurrentPage] = useState(1)
     const itemsPerPage = 15
+    const [jumpValue, setJumpValue] = useState(currentPage.toString())
+
+    // Sync jumpValue when currentPage changes
+    useEffect(() => {
+        setJumpValue(currentPage.toString())
+    }, [currentPage])
 
     const filteredAndSortedData = useMemo(() => {
         const lowerTerm = debouncedSearchTerm.toLowerCase()
@@ -112,6 +118,43 @@ export function SchoolListPage({ data }: SchoolListPageProps) {
                             Trang {currentPage} / {totalPages || 1} (Hiển thị {paginatedData.length} / {filteredAndSortedData.length} kết quả)
                         </div>
                         <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1 mx-2">
+                                <span className="text-xs text-muted-foreground whitespace-nowrap">Tới trang:</span>
+                                <Input
+                                    type="number"
+                                    min={1}
+                                    max={totalPages}
+                                    className="w-16 h-8 text-xs px-2"
+                                    value={jumpValue}
+                                    onChange={(e) => setJumpValue(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            let val = parseInt(jumpValue);
+                                            if (isNaN(val)) {
+                                                setJumpValue(currentPage.toString());
+                                                return;
+                                            }
+                                            if (val < 1) val = 1;
+                                            if (val > totalPages) val = totalPages;
+
+                                            setCurrentPage(val);
+                                            setJumpValue(val.toString());
+                                        }
+                                    }}
+                                    onBlur={() => {
+                                        let val = parseInt(jumpValue);
+                                        if (isNaN(val)) {
+                                            setJumpValue(currentPage.toString());
+                                            return;
+                                        }
+                                        if (val < 1) val = 1;
+                                        if (val > totalPages) val = totalPages;
+
+                                        setCurrentPage(val);
+                                        setJumpValue(val.toString());
+                                    }}
+                                />
+                            </div>
                             <Button
                                 variant="outline"
                                 size="sm"

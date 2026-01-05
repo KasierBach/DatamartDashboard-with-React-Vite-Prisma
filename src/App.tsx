@@ -32,6 +32,19 @@ function AppContent() {
     // Use the new hook for student data management
     const {
         data,
+        total,
+        page,
+        limit,
+        search,
+        sortField,
+        sortOrder,
+        status,
+        setPage,
+        setLimit,
+        setSearch,
+        setSortField,
+        setSortOrder,
+        setStatus,
         provinces,
         schools,
         isRefreshing,
@@ -63,6 +76,21 @@ function AppContent() {
                             {user && canManageStudents(user.role) ? (
                                 <StudentListPage
                                     data={data}
+                                    total={total}
+                                    page={page}
+                                    limit={limit}
+                                    search={search}
+                                    sortField={sortField}
+                                    sortOrder={sortOrder}
+                                    status={status}
+                                    onPageChange={setPage}
+                                    onLimitChange={setLimit}
+                                    onSearchChange={setSearch}
+                                    onSortChange={(field: string, order: string) => {
+                                        setSortField(field);
+                                        setSortOrder(order as 'asc' | 'desc');
+                                    }}
+                                    onStatusChange={setStatus}
                                     onAdd={handleAddRecord}
                                     onUpdate={handleUpdateRecord}
                                     onDelete={handleDelete}
