@@ -1,5 +1,5 @@
-import { useState, useMemo, memo } from 'react'
-import { Info, Activity, CheckCircle, Trophy, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState, useMemo, memo, useEffect } from 'react'
+import { Activity, CheckCircle, Trophy, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react'
 import {
     ResponsiveContainer,
     BarChart,
@@ -29,6 +29,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { DashboardProps } from "./types"
 import { SCORE_THRESHOLDS, THEME_COLORS } from "./constants"
 import { sampleData, formatOneDecimal } from "@/utils/dataUtils"
@@ -128,7 +129,21 @@ function PrincipalDashboardComponent(props: DashboardProps) {
         return momentum;
     }, [data]);
 
-    const renderMomentum = (id: string) => {
+    // Reset pagination when data changes
+    useEffect(() => {
+        if (totalAtRiskPages > 0 && atRiskPage > totalAtRiskPages) {
+            setAtRiskPage(1);
+        }
+    }, [totalAtRiskPages, atRiskPage]);
+
+    useEffect(() => {
+        if (totalTopPages > 0 && topPage > totalTopPages) {
+            setTopPage(1); // Reset to 1 instead of max to be safer
+        }
+    }, [totalTopPages, topPage]);
+
+    const renderMomentum = (id: string | undefined | null) => {
+        if (!id) return null;
         const diff = momentumMap[String(id)];
         if (diff === undefined) return null;
         if (diff > 0.2) return <span className="text-green-600 ml-1 font-bold" title={`Tăng ${formatOneDecimal(diff)} điểm`}>📈</span>;
@@ -138,23 +153,19 @@ function PrincipalDashboardComponent(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded shadow-sm flex items-start">
-                <Info className="h-6 w-6 text-blue-500 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-blue-800">Tổng quan Chiến lược & KPIs</h3>
-                    <p className="text-blue-700 mt-1">
-                        Hiệu suất toàn trường đạt <strong>{formatOneDecimal(avgScores.avg)}/10.0</strong>.
-                        <br />
-                        <strong>Điểm nhấn:</strong> Tỷ lệ đạt chuẩn đạt <strong>{passRate}%</strong>.
-                        {(effectiveAtRiskList.length > 0) && (
-                            <><strong> Cần lưu ý:</strong> Có <strong>{effectiveAtRiskList.length}</strong> học sinh trong nhóm rủi ro (Điểm &lt; {SCORE_THRESHOLDS.AT_RISK}) cần được hỗ trợ kịp thời.</>
-                        )}
-                        {(effectiveAtRiskList.length === 0) && (
-                            <><strong> Trạng thái:</strong> Hiện tại không có học sinh nào nằm trong diện cảnh báo rủi ro cao.</>
-                        )}
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="info" title="Tổng quan Chiến lược & KPIs">
+                <p>
+                    Hiệu suất toàn trường đạt <strong>{formatOneDecimal(avgScores.avg)}/10.0</strong>.
+                    <br />
+                    <strong>Điểm nhấn:</strong> Tỷ lệ đạt chuẩn đạt <strong>{passRate}%</strong>.
+                    {(effectiveAtRiskList.length > 0) && (
+                        <><strong> Cần lưu ý:</strong> Có <strong>{effectiveAtRiskList.length}</strong> học sinh trong nhóm rủi ro (Điểm &lt; {SCORE_THRESHOLDS.AT_RISK}) cần được hỗ trợ kịp thời.</>
+                    )}
+                    {(effectiveAtRiskList.length === 0) && (
+                        <><strong> Trạng thái:</strong> Hiện tại không có học sinh nào nằm trong diện cảnh báo rủi ro cao.</>
+                    )}
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
                 <Card className="shadow-sm border-t-4 border-t-blue-500">
@@ -353,22 +364,32 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                                     <TableHeader className="bg-red-50"><TableRow><TableHead>ID</TableHead><TableHead>Họ tên</TableHead><TableHead>Điểm TB</TableHead><TableHead>Vấn đề chính</TableHead><TableHead>Trạng thái</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {currentAtRisk.length > 0 ? (
-                                            currentAtRisk.map((s: any) => (
-                                                <TableRow key={s.id}>
-                                                    <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
-                                                    <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
-                                                    <TableCell className="font-bold text-red-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
-                                                    <TableCell className="text-red-500">{(s.test_math || 0) < 5.0 ? 'Toán yếu ' : ''}{(s.test_literature || 0) < 5.0 ? 'Văn yếu ' : ''}</TableCell>
-                                                    <TableCell><Badge variant="destructive" className="bg-red-600">Cần can thiệp</Badge></TableCell>
-                                                </TableRow>
-                                            ))
+                                            currentAtRisk.map((s: any) => {
+                                                if (!s) return null;
+                                                return (
+                                                    <TableRow key={s.id || Math.random()}>
+                                                        <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
+                                                        <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
+                                                        <TableCell className="font-bold text-red-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
+                                                        <TableCell className="text-red-500">{(s.test_math || 0) < 5.0 ? 'Toán yếu ' : ''}{(s.test_literature || 0) < 5.0 ? 'Văn yếu ' : ''}</TableCell>
+                                                        <TableCell><Badge variant="destructive" className="bg-red-600">Cần can thiệp</Badge></TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
                                         ) : <TableRow><TableCell colSpan={5} className="text-center py-4">Không có học sinh rủi ro</TableCell></TableRow>}
                                     </TableBody>
                                 </Table>
                             </div>
                             <div className="flex items-center justify-between mt-4">
                                 <span className="text-xs text-muted-foreground italic">Trang {atRiskPage} / {totalAtRiskPages || 1}</span>
-                                <div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => setAtRiskPage(p => Math.max(1, p - 1))} disabled={atRiskPage === 1} className="h-8 px-2"><ChevronLeft className="h-4 w-4" /></Button><Button variant="outline" size="sm" onClick={() => setAtRiskPage(p => Math.min(totalAtRiskPages, p + 1))} disabled={atRiskPage === totalAtRiskPages || totalAtRiskPages === 0} className="h-8 px-2"><ChevronRight className="h-4 w-4" /></Button></div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setAtRiskPage(p => Math.max(1, p - 1))} disabled={atRiskPage === 1} className="h-8 px-2" type="button">
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setAtRiskPage(p => Math.min(totalAtRiskPages, p + 1))} disabled={atRiskPage === totalAtRiskPages || totalAtRiskPages === 0} className="h-8 px-2" type="button">
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
 
@@ -379,22 +400,32 @@ function PrincipalDashboardComponent(props: DashboardProps) {
                                     <TableHeader className="bg-yellow-50"><TableRow><TableHead>ID</TableHead><TableHead>Họ tên</TableHead><TableHead>Điểm TB</TableHead><TableHead>Môn Nổi bật</TableHead><TableHead>Xếp loại</TableHead></TableRow></TableHeader>
                                     <TableBody>
                                         {currentTop.length > 0 ? (
-                                            currentTop.map((s: any) => (
-                                                <TableRow key={s.id}>
-                                                    <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
-                                                    <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
-                                                    <TableCell className="font-bold text-green-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
-                                                    <TableCell>{Math.max(s.test_math || 0, s.test_literature || 0) === (s.test_math || 0) ? 'Toán' : 'Văn'}</TableCell>
-                                                    <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Xuất sắc</Badge></TableCell>
-                                                </TableRow>
-                                            ))
+                                            currentTop.map((s: any) => {
+                                                if (!s) return null;
+                                                return (
+                                                    <TableRow key={s.id || Math.random()}>
+                                                        <TableCell className="font-medium">{s.student_uid || s.id}</TableCell>
+                                                        <TableCell className="flex items-center">Học sinh {s.id} {renderMomentum(s.student_uid || s.id)}</TableCell>
+                                                        <TableCell className="font-bold text-green-600">{formatOneDecimal(s.gpa_overall)}</TableCell>
+                                                        <TableCell>{Math.max(s.test_math || 0, s.test_literature || 0) === (s.test_math || 0) ? 'Toán' : 'Văn'}</TableCell>
+                                                        <TableCell><Badge className="bg-yellow-500 hover:bg-yellow-600">Xuất sắc</Badge></TableCell>
+                                                    </TableRow>
+                                                )
+                                            })
                                         ) : <TableRow><TableCell colSpan={5} className="text-center py-4">Chưa có dữ liệu</TableCell></TableRow>}
                                     </TableBody>
                                 </Table>
                             </div>
                             <div className="flex items-center justify-between mt-4">
                                 <span className="text-xs text-muted-foreground italic">Trang {topPage} / {totalTopPages || 1}</span>
-                                <div className="flex items-center gap-2"><Button variant="outline" size="sm" onClick={() => setTopPage(p => Math.max(1, p - 1))} disabled={topPage === 1} className="h-8 px-2"><ChevronLeft className="h-4 w-4" /></Button><Button variant="outline" size="sm" onClick={() => setTopPage(p => Math.min(totalTopPages, p + 1))} disabled={topPage === totalTopPages || totalTopPages === 0} className="h-8 px-2"><ChevronRight className="h-4 w-4" /></Button></div>
+                                <div className="flex items-center gap-2">
+                                    <Button variant="outline" size="sm" onClick={() => setTopPage(p => Math.max(1, p - 1))} disabled={topPage === 1} className="h-8 px-2" type="button">
+                                        <ChevronLeft className="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="outline" size="sm" onClick={() => setTopPage(p => Math.min(totalTopPages, p + 1))} disabled={topPage === totalTopPages || totalTopPages === 0} className="h-8 px-2" type="button">
+                                        <ChevronRight className="h-4 w-4" />
+                                    </Button>
+                                </div>
                             </div>
                         </div>
                     </CardContent>

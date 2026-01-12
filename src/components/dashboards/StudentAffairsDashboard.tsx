@@ -1,4 +1,3 @@
-import { Users } from 'lucide-react'
 import { useMemo } from 'react'
 import {
     PieChart,
@@ -26,6 +25,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { groupByName, formatOneDecimal } from "@/utils/dataUtils"
 
 // Helper component for Data Context Overlay
@@ -150,17 +150,13 @@ export function StudentAffairsDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-orange-50 border-l-4 border-orange-500 p-4 rounded shadow-sm flex items-start">
-                <Users className="h-6 w-6 text-orange-600 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-orange-800">Hỗ trợ Sinh viên & Phong trào</h3>
-                    <p className="text-orange-700 mt-1">
-                        Theo dõi sát <strong>{lowAttendanceCount}</strong> sinh viên có tỷ lệ chuyên cần dưới 80% (Nguy cơ rớt môn cao).
-                        <br />
-                        <strong>Lưu ý:</strong> Cần gặp gỡ và tư vấn cho nhóm sinh viên này để tìm hiểu nguyên nhân (Bệnh lý, Gia đình, hay Chán học).
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="orange" title="Hỗ trợ Sinh viên & Phong trào">
+                <p>
+                    Theo dõi sát <strong>{lowAttendanceCount}</strong> sinh viên có tỷ lệ chuyên cần dưới 80% (Nguy cơ rớt môn cao).
+                    <br />
+                    <strong>Lưu ý:</strong> Cần gặp gỡ và tư vấn cho nhóm sinh viên này để tìm hiểu nguyên nhân (Bệnh lý, Gia đình, hay Chán học).
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card>

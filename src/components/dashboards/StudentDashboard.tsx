@@ -1,4 +1,3 @@
-import { User } from 'lucide-react'
 import {
     RadarChart,
     PolarGrid,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
 import { SCORE_THRESHOLDS } from "./constants"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { formatOneDecimal } from "@/utils/dataUtils"
 
 // Helper component for Data Context Overlay
@@ -52,16 +52,12 @@ export function StudentDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-sky-50 border-l-4 border-sky-500 p-4 rounded shadow-sm flex items-start">
-                <User className="h-6 w-6 text-sky-600 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-sky-800">Góc học tập của bạn</h3>
-                    <p className="text-sky-700 mt-1">
-                        Chào em, năng lực học tập của em đang được theo dõi sát sao.
-                        Hãy cố gắng duy trì phong độ và dành thời gian ôn tập cho các môn còn yếu.
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="sky" title="Góc học tập của bạn">
+                <p>
+                    Chào em, năng lực học tập của em đang được theo dõi sát sao.
+                    Hãy cố gắng duy trì phong độ và dành thời gian ôn tập cho các môn còn yếu.
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-md">

@@ -1,4 +1,3 @@
-import { AlertTriangle } from 'lucide-react'
 import { useMemo } from 'react'
 import {
     BarChart,
@@ -25,6 +24,7 @@ import {
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
 import { THEME_COLORS, SCORE_THRESHOLDS } from "./constants"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { formatOneDecimal } from "@/utils/dataUtils"
 
 // Helper component for Data Context Overlay
@@ -202,22 +202,19 @@ export function AcademicAffairsDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className={`${isFallbackCritical ? 'bg-amber-50 border-amber-500' : 'bg-red-50 border-red-500'} border-l-4 p-4 rounded shadow-sm flex items-start`}>
-                <AlertTriangle className={`h-6 w-6 ${isFallbackCritical ? 'text-amber-600' : 'text-red-600'} mt-1 mr-3 flex-shrink-0`} />
-                <div>
-                    <h3 className={`text-lg font-bold ${isFallbackCritical ? 'text-amber-800' : 'text-red-800'} flex items-center`}>
-                        {isFallbackCritical ? 'Giám sát Nhóm học lực thấp (Dự phòng)' : 'Cảnh báo Học vụ & Quy chế'}
-                    </h3>
-                    <p className={`${isFallbackCritical ? 'text-amber-700' : 'text-red-700'} mt-1`}>
-                        {isFallbackCritical
-                            ? <span>Không có học sinh rớt. Đang hiển thị <strong>{criticalStudents.length}</strong> học sinh có điểm thấp nhất để theo dõi.</span>
-                            : <span>Phát hiện <strong>{criticalStudents.length}</strong> trường hợp có điểm trung bình dưới 3.5 (Cảnh báo mức 2).</span>
-                        }
-                        <br />
-                        <strong>Hành động:</strong> {isFallbackCritical ? 'Tiếp tục theo dõi sát nhóm này.' : 'Gửi thông báo nhắc nhở đến GVCN và Phụ huynh trước ngày 25.'}
-                    </p>
-                </div>
-            </div>
+            <InsightBanner
+                variant={isFallbackCritical ? "warning" : "warning"}
+                title={isFallbackCritical ? 'Giám sát Nhóm học lực thấp (Dự phòng)' : 'Cảnh báo Học vụ & Quy chế'}
+            >
+                <p>
+                    {isFallbackCritical
+                        ? <span>Không có học sinh rớt. Đang hiển thị <strong>{criticalStudents.length}</strong> học sinh có điểm thấp nhất để theo dõi.</span>
+                        : <span>Phát hiện <strong>{criticalStudents.length}</strong> trường hợp có điểm trung bình dưới 3.5 (Cảnh báo mức 2).</span>
+                    }
+                    <br />
+                    <strong>Hành động:</strong> {isFallbackCritical ? 'Tiếp tục theo dõi sát nhóm này.' : 'Gửi thông báo nhắc nhở đến GVCN và Phụ huynh trước ngày 25.'}
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-3">
                 <Card className="border-l-4 border-l-red-500 shadow-sm">

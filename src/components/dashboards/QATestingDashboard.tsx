@@ -1,4 +1,3 @@
-import { PenTool } from 'lucide-react'
 import { useMemo } from 'react'
 import {
     BarChart,
@@ -17,6 +16,7 @@ import {
 } from 'recharts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DashboardProps } from "./types"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { THEME_COLORS } from "./constants"
 import { groupByName, sampleData, formatOneDecimal } from "@/utils/dataUtils"
 
@@ -102,16 +102,12 @@ export function QATestingDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded shadow-sm flex items-start">
-                <PenTool className="h-6 w-6 text-purple-600 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-purple-800 flex items-center">Phân tích Chất lượng Đào tạo & Khảo thí</h3>
-                    <p className="text-purple-700 mt-1">
-                        Hệ thống đang phân tích <strong>{data.length}</strong> kết quả thi.
-                        Độ lệch trung bình giữa GPA và Điểm thi là <strong>{formatOneDecimal(avgGap)}</strong> ({avgGap < 1.0 ? 'Trong ngưỡng an toàn' : 'Cần lưu ý về lạm phát điểm số'}).
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="purple" title="Phân tích Chất lượng Đào tạo & Khảo thí">
+                <p>
+                    Hệ thống đang phân tích <strong>{data.length}</strong> kết quả thi.
+                    Độ lệch trung bình giữa GPA và Điểm thi là <strong>{formatOneDecimal(avgGap)}</strong> ({avgGap < 1.0 ? 'Trong ngưỡng an toàn' : 'Cần lưu ý về lạm phát điểm số'}).
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-4">
                 <Card className="bg-green-50">

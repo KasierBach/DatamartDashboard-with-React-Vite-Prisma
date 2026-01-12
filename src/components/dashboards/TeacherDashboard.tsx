@@ -1,4 +1,3 @@
-import { Target } from 'lucide-react'
 import { useMemo } from 'react'
 import {
     Bar,
@@ -26,6 +25,7 @@ import {
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
 import { THEME_COLORS, SCORE_THRESHOLDS } from "./constants"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { sampleData, formatOneDecimal } from "@/utils/dataUtils"
 
 // Helper component for Data Context Overlay
@@ -131,15 +131,11 @@ export function TeacherDashboard(props: DashboardProps) {
             </div>
 
             <div className="flex flex-col md:flex-row gap-4">
-                <div className="flex-1 bg-blue-50 border border-blue-200 p-4 rounded-lg flex items-start">
-                    <Target className="h-5 w-5 text-blue-600 mt-1 mr-2" />
-                    <div>
-                        <h3 className="font-bold text-blue-800">Tương quan Chuyên cần & Điểm số</h3>
-                        <p className="text-sm text-blue-700 mt-2">
-                            Dựa trên dữ liệu chuyên cần, thầy/cô có thể nhận diện học sinh có điểm thấp do nghỉ học nhiều (góc dưới bên trái).
-                        </p>
-                    </div>
-                </div>
+                <InsightBanner variant="info" title="Tương quan Chuyên cần & Điểm số" className="flex-1">
+                    <p>
+                        Dựa trên dữ liệu chuyên cần, thầy/cô có thể nhận diện học sinh có điểm thấp do nghỉ học nhiều (góc dưới bên trái).
+                    </p>
+                </InsightBanner>
             </div>
 
             <Card className="col-span-full">

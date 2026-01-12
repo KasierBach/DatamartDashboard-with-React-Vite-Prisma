@@ -1,4 +1,3 @@
-import { BookOpen } from 'lucide-react'
 import { useMemo } from 'react'
 import {
     BarChart,
@@ -24,6 +23,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { DashboardProps } from "./types"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { THEME_COLORS } from "./constants"
 import { formatOneDecimal } from "@/utils/dataUtils"
 
@@ -60,17 +60,13 @@ export function HeadDeptDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-teal-50 border-l-4 border-teal-500 p-4 rounded shadow-sm flex items-start">
-                <BookOpen className="h-6 w-6 text-teal-600 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-teal-800">Chất lượng Bộ môn & Giảng dạy</h3>
-                    <p className="text-teal-700 mt-1">
-                        Điểm trung bình môn <strong>Toán</strong> {Math.abs(avgScores.math - avgScores.reading) > 0.1 ? (avgScores.math > avgScores.reading ? 'đang cao hơn' : 'đang thấp hơn') : 'đang tương đương'} <strong>Văn</strong> khoảng <strong>{formatOneDecimal(Math.abs(avgScores.math - avgScores.reading))}</strong> điểm.
-                        <br />
-                        <strong>Đề xuất:</strong> {avgScores.reading < avgScores.math ? 'Tổ chức hội thảo chuyên đề "Đổi mới phương pháp dạy Văn" vào tháng tới.' : 'Tiếp tục duy trì và phát huy các mô hình học tập hiện tại.'}
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="teal" title="Chất lượng Bộ môn & Giảng dạy">
+                <p>
+                    Điểm trung bình môn <strong>Toán</strong> {Math.abs(avgScores.math - avgScores.reading) > 0.1 ? (avgScores.math > avgScores.reading ? 'đang cao hơn' : 'đang thấp hơn') : 'đang tương đương'} <strong>Văn</strong> khoảng <strong>{formatOneDecimal(Math.abs(avgScores.math - avgScores.reading))}</strong> điểm.
+                    <br />
+                    <strong>Đề xuất:</strong> {avgScores.reading < avgScores.math ? 'Tổ chức hội thảo chuyên đề "Đổi mới phương pháp dạy Văn" vào tháng tới.' : 'Tiếp tục duy trì và phát huy các mô hình học tập hiện tại.'}
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-4">
                 <Card>

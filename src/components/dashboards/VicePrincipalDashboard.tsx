@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { Target, ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
     BarChart,
     Bar,
@@ -26,6 +26,7 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
+import { InsightBanner } from "@/components/ui/InsightBanner"
 import { DashboardProps } from "./types"
 import { THEME_COLORS, SCORE_THRESHOLDS } from "./constants"
 import { formatOneDecimal } from "@/utils/dataUtils"
@@ -113,17 +114,13 @@ export function VicePrincipalDashboard(props: DashboardProps) {
 
     return (
         <div className="space-y-6">
-            <div className="bg-purple-50 border-l-4 border-purple-500 p-4 rounded shadow-sm flex items-start">
-                <Target className="h-6 w-6 text-purple-600 mt-1 mr-3 flex-shrink-0" />
-                <div>
-                    <h3 className="text-lg font-bold text-purple-800">Giám sát Hiệu quả Đào tạo</h3>
-                    <p className="text-purple-700 mt-1">
-                        Tổng số <strong>{data.length.toLocaleString()}</strong> học sinh. Tỷ lệ đạt chuẩn: <strong>{Math.round((data.filter(d => (d.gpa_overall || 0) >= SCORE_THRESHOLDS.PASSING).length / data.length) * 100)}%</strong>.
-                        <br />
-                        <strong>Điểm trung bình:</strong> Toán {avgScores.math} | Văn {avgScores.reading}
-                    </p>
-                </div>
-            </div>
+            <InsightBanner variant="purple" title="Giám sát Hiệu quả Đào tạo">
+                <p>
+                    Tổng số <strong>{data.length.toLocaleString()}</strong> học sinh. Tỷ lệ đạt chuẩn: <strong>{Math.round((data.filter(d => (d.gpa_overall || 0) >= SCORE_THRESHOLDS.PASSING).length / data.length) * 100)}%</strong>.
+                    <br />
+                    <strong>Điểm trung bình:</strong> Toán {avgScores.math} | Văn {avgScores.reading}
+                </p>
+            </InsightBanner>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card className="border-t-4 border-t-purple-500">
