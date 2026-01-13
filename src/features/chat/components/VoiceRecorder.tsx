@@ -17,10 +17,11 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
-    const recordingTimeRef = useRef(0);
+    const isCancelledRef = useRef(false);
 
     const startRecording = useCallback(async () => {
         try {
+            isCancelledRef.current = false;
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
 
             // Detect supported MIME type
@@ -42,6 +43,12 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
 
             mediaRecorder.onstop = async () => {
                 stream.getTracks().forEach(track => track.stop());
+
+                if (isCancelledRef.current) {
+                    console.log('Recording cancelled');
+                    return;
+                }
+
                 const finalDuration = recordingTimeRef.current;
 
                 if (audioChunksRef.current.length > 0) {
@@ -110,6 +117,7 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
 
     const cancelRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecording) {
+            isCancelledRef.current = true;
             audioChunksRef.current = [];
             mediaRecorderRef.current.stop();
             setIsRecording(false);
