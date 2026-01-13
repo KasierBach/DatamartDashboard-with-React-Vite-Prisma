@@ -110,7 +110,7 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         const unsubPinned = onMessagePinned((data) => {
             if (selectedConversationIdRef.current === data.conversationId) {
                 setMessages(prev => prev.map(msg =>
-                    msg.id === data.messageId ? { ...msg, pinnedMessages: [{ pinned_by: data.pinnedBy }] } : msg
+                    msg.id === data.messageId ? { ...msg, pinnedMessages: [data.pinnedMessage] } : msg
                 ));
             }
         });

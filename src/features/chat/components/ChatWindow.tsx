@@ -15,13 +15,13 @@ interface ChatWindowProps {
     currentUserId: number | null;
     newMessage: string;
     editingMessage: Message | null;
-    inputRef: React.RefObject<HTMLInputElement | null>;
+    inputRef: React.RefObject<HTMLTextAreaElement>;
     messagesEndRef: React.RefObject<HTMLDivElement | null>;
     isMobileListView: boolean;
     isUserOnline: (userId: number) => boolean;
     typingUsers?: User[];
     onBackClick: () => void;
-    onTyping: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
+    onTyping: (value: string) => void;
     onSend: () => void;
     onCancelEdit: () => void;
     onEditMessage: (msg: Message) => void;

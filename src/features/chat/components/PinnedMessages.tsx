@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { API_ENDPOINTS } from '@/config/api';
+import { useSocket } from '@/context/SocketContext';
 import type { PinnedMessage } from '../types';
 
 interface PinnedMessagesProps {
@@ -21,6 +22,7 @@ export function PinnedMessages({
 }: PinnedMessagesProps) {
     const [pinnedMessages, setPinnedMessages] = useState<PinnedMessage[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
+    const { onMessagePinned, onMessageUnpinned, onMessageRecalled, onMessageDeleted } = useSocket();
 
     useEffect(() => {
         const fetchPinned = async () => {
@@ -38,7 +40,45 @@ export function PinnedMessages({
         };
 
         fetchPinned();
-    }, [conversationId]);
+
+        // Socket listeners for real-time updates
+        const unsubPinned = onMessagePinned((data) => {
+            if (data.conversationId === conversationId) {
+                setPinnedMessages(prev => {
+                    // Avoid duplicates
+                    if (prev.some(pm => pm.id === data.pinnedMessage.id)) return prev;
+                    return [data.pinnedMessage, ...prev].sort((a, b) =>
+                        new Date(b.pinned_at).getTime() - new Date(a.pinned_at).getTime()
+                    );
+                });
+            }
+        });
+
+        const unsubUnpinned = onMessageUnpinned((data) => {
+            if (data.conversationId === conversationId) {
+                setPinnedMessages(prev => prev.filter(pm => pm.message_id !== data.messageId));
+            }
+        });
+
+        const unsubRecalled = onMessageRecalled((data) => {
+            if (data.conversationId === conversationId) {
+                setPinnedMessages(prev => prev.filter(pm => pm.message_id !== data.messageId));
+            }
+        });
+
+        const unsubDeleted = onMessageDeleted((data) => {
+            // Local delete only affects current user, but if the message is gone from their view, 
+            // maybe we should also hide it from their pinned list for consistency.
+            setPinnedMessages(prev => prev.filter(pm => pm.message_id !== data.messageId));
+        });
+
+        return () => {
+            unsubPinned();
+            unsubUnpinned();
+            unsubRecalled();
+            unsubDeleted();
+        };
+    }, [conversationId, onMessagePinned, onMessageUnpinned, onMessageRecalled, onMessageDeleted]);
 
     if (pinnedMessages.length === 0) return null;
 
@@ -57,12 +97,27 @@ export function PinnedMessages({
                     <p className="text-xs text-muted-foreground">Tin nhắn đã ghim</p>
                     <p className="text-sm truncate">{firstPinned.message.content || '📎 Tệp đính kèm'}</p>
                 </div>
-                {hasMore && (
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <span>+{pinnedMessages.length - 1}</span>
-                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </div>
-                )}
+                <div className="flex items-center gap-1">
+                    {onUnpin && (
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-muted"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onUnpin(firstPinned.message_id);
+                            }}
+                        >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                        </Button>
+                    )}
+                    {hasMore && (
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground ml-1">
+                            <span>+{pinnedMessages.length - 1}</span>
+                            {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {/* Expanded view */}

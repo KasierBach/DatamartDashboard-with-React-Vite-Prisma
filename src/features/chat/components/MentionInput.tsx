@@ -1,33 +1,35 @@
 import { useState, useRef, useEffect, forwardRef } from 'react';
-import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { User } from '../types';
 
-interface MentionInputProps extends Omit<React.ComponentProps<typeof Input>, 'onChange'> {
+interface MentionInputProps extends Omit<React.ComponentProps<typeof Textarea>, 'onChange'> {
     users: User[];
     onValueChange: (value: string) => void;
     onMention?: (user: User) => void;
+    onPasteFile?: (file: File) => void;
+    onKeyDownCustom?: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void;
 }
 
-export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
-    ({ users, onValueChange, onMention, className, ...props }, ref) => {
+export const MentionInput = forwardRef<HTMLTextAreaElement, MentionInputProps>(
+    ({ users, onValueChange, onMention, onPasteFile, onKeyDownCustom, className, ...props }, ref) => {
         const [showSuggestions, setShowSuggestions] = useState(false);
         const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
         const [mentionStartPos, setMentionStartPos] = useState(-1);
         const [selectedIndex, setSelectedIndex] = useState(0);
-        const inputRef = useRef<HTMLInputElement>(null);
+        const textareaRef = useRef<HTMLTextAreaElement>(null);
         const containerRef = useRef<HTMLDivElement>(null);
 
         // Merge refs
         useEffect(() => {
             if (ref && typeof ref === 'function') {
-                ref(inputRef.current);
+                ref(textareaRef.current);
             } else if (ref && 'current' in ref) {
-                (ref as React.MutableRefObject<HTMLInputElement | null>).current = inputRef.current;
+                (ref as React.MutableRefObject<HTMLTextAreaElement | null>).current = textareaRef.current;
             }
         }, [ref]);
 
-        const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
             const value = e.target.value;
             const cursorPos = e.target.selectionStart || 0;
 
@@ -37,7 +39,8 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
             const textBeforeCursor = value.slice(0, cursorPos);
             const lastAtIndex = textBeforeCursor.lastIndexOf('@');
 
-            if (lastAtIndex !== -1) {
+            // Ensure @ is preceded by start of string or whitespace
+            if (lastAtIndex !== -1 && (lastAtIndex === 0 || /\s/.test(textBeforeCursor[lastAtIndex - 1]))) {
                 const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
                 // Check if there's no space after @
                 if (!textAfterAt.includes(' ')) {
@@ -58,7 +61,7 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
         };
 
         const insertMention = (user: User) => {
-            const input = inputRef.current;
+            const input = textareaRef.current;
             if (!input || mentionStartPos === -1) return;
 
             const currentValue = input.value;
@@ -85,30 +88,54 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
             }, 0);
         };
 
-        const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (!showSuggestions) return;
+        const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (showSuggestions) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => Math.min(prev + 1, filteredUsers.length - 1));
+                    return;
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setSelectedIndex(prev => Math.max(prev - 1, 0));
+                    return;
+                } else if (e.key === 'Enter' && filteredUsers[selectedIndex]) {
+                    e.preventDefault();
+                    insertMention(filteredUsers[selectedIndex]);
+                    return;
+                } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    return;
+                }
+            }
 
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setSelectedIndex(prev => Math.min(prev + 1, filteredUsers.length - 1));
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setSelectedIndex(prev => Math.max(prev - 1, 0));
-            } else if (e.key === 'Enter' && filteredUsers[selectedIndex]) {
-                e.preventDefault();
-                insertMention(filteredUsers[selectedIndex]);
-            } else if (e.key === 'Escape') {
-                setShowSuggestions(false);
+            // Normal key handling passed from parent (e.g., Send on Enter)
+            if (onKeyDownCustom) {
+                onKeyDownCustom(e);
+            }
+        };
+
+        const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+            const items = e.clipboardData.items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1 || items[i].type.indexOf('video') !== -1 || items[i].type.indexOf('application') !== -1) {
+                    const blob = items[i].getAsFile();
+                    if (blob && onPasteFile) {
+                        e.preventDefault();
+                        onPasteFile(blob);
+                    }
+                }
             }
         };
 
         return (
             <div ref={containerRef} className="relative flex-1">
-                <Input
-                    ref={inputRef}
+                <Textarea
+                    ref={textareaRef}
                     onChange={handleChange}
                     onKeyDown={handleKeyDown}
-                    className={cn('flex-1', className)}
+                    onPaste={handlePaste}
+                    className={cn('flex-1 py-2 h-auto max-h-32', className)}
+                    rows={1}
                     {...props}
                 />
 

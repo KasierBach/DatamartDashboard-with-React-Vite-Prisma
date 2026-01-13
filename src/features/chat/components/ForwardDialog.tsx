@@ -35,10 +35,14 @@ export function ForwardDialog({
 
     const filteredConversations = conversations.filter(conv => {
         if (conv.id === message?.conversation_id) return false; // Exclude current conversation
+        const otherUser = conv.users?.find(u => u.id !== currentUserId);
         const name = conv.type === 'group'
             ? conv.name
-            : conv.users.find(u => u.id !== currentUserId)?.name;
-        return name?.toLowerCase().includes(searchQuery.toLowerCase());
+            : otherUser?.name || otherUser?.username;
+
+        if (!name && conv.type !== 'group') return false; // Hide direct chats with no other user info
+
+        return (name || '').toLowerCase().includes(searchQuery.toLowerCase());
     });
 
     const toggleSelect = (id: number) => {

@@ -17,12 +17,22 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
     const audioChunksRef = useRef<Blob[]>([]);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
+    const recordingTimeRef = useRef(0);
 
     const startRecording = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const mediaRecorder = new MediaRecorder(stream);
+
+            // Detect supported MIME type
+            const mimeType = ['audio/webm', 'audio/ogg', 'audio/mp4', 'audio/wav']
+                .find(type => MediaRecorder.isTypeSupported(type)) || '';
+
+            console.log('Using MIME type:', mimeType);
+
+            const mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
             audioChunksRef.current = [];
+            recordingTimeRef.current = 0;
+            setRecordingTime(0);
 
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
@@ -32,15 +42,19 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
 
             mediaRecorder.onstop = async () => {
                 stream.getTracks().forEach(track => track.stop());
+                const finalDuration = recordingTimeRef.current;
 
                 if (audioChunksRef.current.length > 0) {
-                    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                    const actualMimeType = mediaRecorder.mimeType || 'audio/webm';
+                    const audioBlob = new Blob(audioChunksRef.current, { type: actualMimeType });
 
                     // Upload blob
                     setIsUploading(true);
                     try {
                         const formData = new FormData();
-                        formData.append('file', audioBlob, `voice_${Date.now()}.webm`);
+                        // Ensure filename matches extension
+                        const ext = actualMimeType.split('/')[1]?.split(';')[0] || 'webm';
+                        formData.append('file', audioBlob, `voice_${Date.now()}.${ext}`);
 
                         const response = await fetch(API_ENDPOINTS.UPLOAD, {
                             method: 'POST',
@@ -49,16 +63,22 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
 
                         if (response.ok) {
                             const { url } = await response.json();
-                            onRecordComplete(url, recordingTime);
+                            onRecordComplete(url, finalDuration);
+                        } else {
+                            const errorData = await response.json().catch(() => ({}));
+                            console.error('Upload failed with status:', response.status, errorData);
+                            alert(`Lỗi upload: ${errorData.error || 'Server error'} (${errorData.details || 'No details'})`);
                         }
                     } catch (error) {
                         console.error('Upload failed:', error);
+                        alert('Không thể kết nối tới server để gửi tin nhắn thoại.');
                     } finally {
                         setIsUploading(false);
                     }
                 }
 
                 setRecordingTime(0);
+                recordingTimeRef.current = 0;
             };
 
             mediaRecorderRef.current = mediaRecorder;
@@ -67,14 +87,15 @@ export function VoiceRecorder({ onRecordComplete, onCancel, disabled }: VoiceRec
 
             // Start timer
             timerRef.current = setInterval(() => {
-                setRecordingTime(prev => prev + 1);
+                recordingTimeRef.current += 1;
+                setRecordingTime(recordingTimeRef.current);
             }, 1000);
 
         } catch (error) {
             console.error('Failed to start recording:', error);
             alert('Không thể truy cập microphone. Vui lòng kiểm tra quyền.');
         }
-    }, [recordingTime, onRecordComplete]);
+    }, [onRecordComplete]);
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current && isRecording) {

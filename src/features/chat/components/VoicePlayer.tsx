@@ -68,33 +68,33 @@ export function VoicePlayer({ src, duration, className }: VoicePlayerProps) {
 
     return (
         <div className={cn(
-            'flex items-center gap-2 p-2 min-w-[180px] bg-primary/5 rounded-lg',
+            'flex items-center gap-3 p-2 min-w-[200px]',
             className
         )}>
             <button
                 onClick={togglePlay}
-                className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground shrink-0"
+                className="h-10 w-10 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-inherit shrink-0 transition-colors"
             >
                 {isPlaying ? (
-                    <Pause className="h-4 w-4" />
+                    <Pause className="h-5 w-5 fill-current" />
                 ) : (
-                    <Play className="h-4 w-4 ml-0.5" />
+                    <Play className="h-5 w-5 ml-0.5 fill-current" />
                 )}
             </button>
 
-            <div className="flex-1 space-y-1">
-                {/* Waveform (simplified as progress bar) */}
+            <div className="flex-1 flex flex-col justify-center gap-1.5 min-h-[40px]">
+                {/* Progress Bar */}
                 <div
-                    className="h-2 bg-muted rounded-full cursor-pointer overflow-hidden"
+                    className="h-1.5 bg-white/30 rounded-full cursor-pointer overflow-hidden relative"
                     onClick={handleSeek}
                 >
                     <div
-                        className="h-full bg-primary transition-all duration-100"
+                        className="absolute top-0 left-0 h-full bg-white transition-all duration-150 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
 
-                <div className="flex justify-between text-[10px] text-muted-foreground">
+                <div className="flex justify-between items-center text-[11px] font-medium opacity-80 select-none">
                     <span>{formatTime(currentTime)}</span>
                     <span>{formatTime(displayDuration)}</span>
                 </div>

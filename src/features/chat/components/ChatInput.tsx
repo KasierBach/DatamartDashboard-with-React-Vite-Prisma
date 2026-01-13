@@ -11,8 +11,8 @@ interface ChatInputProps {
     value: string;
     editingMessage: Message | null;
     replyingMessage?: Message | null;
-    inputRef: React.RefObject<HTMLInputElement | null>;
-    onChange: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
+    inputRef: React.RefObject<HTMLTextAreaElement>;
+    onChange: (value: string) => void;
     onSend: () => void;
     onVoiceSend?: (voiceUrl: string, duration: number) => void;
     onCancelEdit: () => void;
@@ -44,6 +44,13 @@ export function ChatInput({
     isSending,
     conversationUsers = [],
 }: ChatInputProps) {
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            onSend();
+        }
+    };
+
     return (
         <div className="p-4 border-t">
             {editingMessage && (
@@ -92,10 +99,7 @@ export function ChatInput({
                 </div>
             )}
 
-            <form
-                onSubmit={e => { e.preventDefault(); onSend(); }}
-                className="flex items-end gap-2"
-            >
+            <div className="flex items-end gap-2">
                 <div className="flex items-center gap-1 mb-1">
                     <EmojiPicker onSelect={onEmojiSelect} disabled={!!editingMessage} />
                     <AttachmentButton onFileSelect={onFileSelect} disabled={!!editingMessage} />
@@ -109,7 +113,7 @@ export function ChatInput({
                 </div>
 
                 <MentionInput
-                    ref={inputRef as React.RefObject<HTMLInputElement>}
+                    ref={inputRef}
                     value={value}
                     onValueChange={onChange}
                     onFocus={onFocus}
@@ -117,17 +121,20 @@ export function ChatInput({
                     className="flex-1"
                     disabled={isSending}
                     users={conversationUsers}
+                    onKeyDownCustom={handleKeyDown}
+                    onPasteFile={onFileSelect}
                 />
 
                 <Button
-                    type="submit"
+                    onClick={onSend}
                     size="icon"
                     className="mb-1"
                     disabled={(!!(!value.trim() && !attachment)) || isSending}
                 >
                     <Send className="h-4 w-4" />
                 </Button>
-            </form>
+            </div>
         </div>
     );
 }
+

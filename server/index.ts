@@ -60,6 +60,12 @@ app.get('/api/health', (req: Request, res: Response) => {
 // Initialize Socket.IO
 initializeSocket(io);
 
+// Error error handling middleware
+app.use((err: any, req: Request, res: Response, next: any) => {
+    console.error('Server error:', err);
+    res.status(500).json({ error: err.message || 'Internal Server Error' });
+});
+
 // Start Server with HTTP server (for Socket.IO)
 httpServer.listen(port, () => {
     console.log(`Server running on http://localhost:${port}`);

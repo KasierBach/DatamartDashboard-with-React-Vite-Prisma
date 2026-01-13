@@ -46,6 +46,7 @@ export interface Message {
     voice_duration?: number;
     reactions?: MessageReaction[];
     statuses: MessageStatus[];
+    pinnedMessages?: PinnedMessage[];
     sender?: {
         id: number;
         username: string;

@@ -1,0 +1,48 @@
+[2026-01-13T15:31:34.508Z] UPLOAD_ROUTE_LOADED 
+[2026-01-13T15:31:34.512Z] DISK_WRITE_TEST_PASSED 
+[2026-01-13T15:33:02.922Z] UPLOAD_REQUEST_RECEIVED {
+  "headers": "multipart/form-data; boundary=----WebKitFormBoundary6lOb8c8KJKt11AlL",
+  "body": {}
+}
+[2026-01-13T15:33:02.929Z] UPLOAD: fileFilter started {
+  "name": "voice_1768318382909.webm",
+  "mimetype": "audio/webm"
+}
+[2026-01-13T15:33:02.930Z] UPLOAD: fileFilter accepted 
+[2026-01-13T15:33:02.931Z] MULTER_DESTINATION: Checking dir {
+  "uploadDir": "D:\\DataFlatform_with_React_Prisma\\server\\uploads"
+}
+[2026-01-13T15:33:02.931Z] MULTER_FILENAME: Processing {
+  "originalname": "voice_1768318382909.webm"
+}
+[2026-01-13T15:33:02.931Z] MULTER_FILENAME: Result {
+  "finalName": "1768318382931-186523971-voice_1768318382909.webm"
+}
+[2026-01-13T15:33:02.963Z] UPLOAD_SUCCESS {
+  "filename": "1768318382931-186523971-voice_1768318382909.webm",
+  "mimetype": "audio/webm",
+  "size": 43452
+}
+[2026-01-13T15:33:23.111Z] UPLOAD_REQUEST_RECEIVED {
+  "headers": "multipart/form-data; boundary=----WebKitFormBoundaryYLUm63ytwgptfGJ9",
+  "body": {}
+}
+[2026-01-13T15:33:23.114Z] UPLOAD: fileFilter started {
+  "name": "voice_1768318403107.webm",
+  "mimetype": "audio/webm"
+}
+[2026-01-13T15:33:23.115Z] UPLOAD: fileFilter accepted 
+[2026-01-13T15:33:23.115Z] MULTER_DESTINATION: Checking dir {
+  "uploadDir": "D:\\DataFlatform_with_React_Prisma\\server\\uploads"
+}
+[2026-01-13T15:33:23.116Z] MULTER_FILENAME: Processing {
+  "originalname": "voice_1768318403107.webm"
+}
+[2026-01-13T15:33:23.116Z] MULTER_FILENAME: Result {
+  "finalName": "1768318403116-789023083-voice_1768318403107.webm"
+}
+[2026-01-13T15:33:23.119Z] UPLOAD_SUCCESS {
+  "filename": "1768318403116-789023083-voice_1768318403107.webm",
+  "mimetype": "audio/webm",
+  "size": 87236
+}

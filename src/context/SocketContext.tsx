@@ -51,7 +51,7 @@ interface SocketContextType {
     onMessageDeleted: (callback: (data: { messageId: number; userId: number }) => void) => () => void;
     onMessageUndeleted: (callback: (data: { message: any; userId: number; conversationId: number }) => void) => () => void;
     onMessageRecalled: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
-    onMessagePinned: (callback: (data: { messageId: number; conversationId: number; pinnedBy: number }) => void) => () => void;
+    onMessagePinned: (callback: (data: { messageId: number; conversationId: number; pinnedBy: number; pinnedMessage: any }) => void) => () => void;
     onMessageUnpinned: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
     onReactionUpdate: (callback: (data: { messageId: number; reactions: any[] }) => void) => () => void;
     onNotification: (callback: (data: { conversationId: number; message: any }) => void) => () => void;
@@ -275,7 +275,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         return () => socket.off('message:recalled', callback);
     }, [socket]);
 
-    const onMessagePinned = useCallback((callback: (data: { messageId: number; conversationId: number; pinnedBy: number }) => void) => {
+    const onMessagePinned = useCallback((callback: (data: { messageId: number; conversationId: number; pinnedBy: number; pinnedMessage: any }) => void) => {
         if (!socket) return () => { };
         socket.on('message:pinned', callback);
         return () => socket.off('message:pinned', callback);

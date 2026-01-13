@@ -28,6 +28,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
     const allowedTypes = [
         'image/jpeg', 'image/png', 'image/gif', 'image/webp',
         'video/mp4', 'video/webm',
+        'audio/webm', 'audio/mpeg', 'audio/ogg', 'audio/wav',
         'application/pdf',
         'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -35,10 +36,14 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'text/plain'
     ];
-    if (allowedTypes.includes(file.mimetype)) {
+
+    // Check if mimetype starts with any of the allowed types (to handle codecs=opus etc)
+    const isAllowed = allowedTypes.some(type => file.mimetype.startsWith(type));
+
+    if (isAllowed) {
         cb(null, true);
     } else {
-        cb(new Error('Invalid file type. Only images, videos and documents (PDF, Word, Excel, TXT) are allowed.'));
+        cb(new Error(`Invalid file type: ${file.mimetype}. Allowed base types: ${allowedTypes.join(', ')}`));
     }
 };
 
@@ -50,33 +55,42 @@ const upload = multer({
     }
 });
 
-// Upload endpoint
-router.post('/', upload.single('file'), (req: Request, res: Response) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
+// Upload endpoint with local error handling
+router.post('/', (req: Request, res: Response, next) => {
+    upload.single('file')(req, res, (err: any) => {
+        if (err) {
+            console.error('UPLOAD: Multer/Filter error:', err);
+            return res.status(500).json({
+                error: err.message || 'Multer error',
+                details: err.code || 'No details'
+            });
         }
 
-        // Return the file URL (assuming server serves /uploads)
-        const fileUrl = `/uploads/${req.file.filename}`;
-        let fileType: 'image' | 'video' | 'file' = 'file';
+        try {
+            if (!req.file) {
+                return res.status(400).json({ error: 'No file uploaded' });
+            }
 
-        if (req.file.mimetype.startsWith('image/')) {
-            fileType = 'image';
-        } else if (req.file.mimetype.startsWith('video/')) {
-            fileType = 'video';
+            const fileUrl = `/uploads/${req.file.filename}`;
+            let fileType: 'image' | 'video' | 'file' = 'file';
+
+            if (req.file.mimetype.startsWith('image/')) {
+                fileType = 'image';
+            } else if (req.file.mimetype.startsWith('video/')) {
+                fileType = 'video';
+            }
+
+            res.json({
+                url: fileUrl,
+                type: fileType,
+                filename: req.file.filename,
+                originalName: req.file.originalname
+            });
+        } catch (error: any) {
+            console.error('UPLOAD: Logic error:', error);
+            res.status(500).json({ error: 'Failed to process uploaded file', details: error.message });
         }
-
-        res.json({
-            url: fileUrl,
-            type: fileType,
-            filename: req.file.filename,
-            originalName: req.file.originalname
-        });
-    } catch (error) {
-        console.error('Error uploading file:', error);
-        res.status(500).json({ error: 'Failed to upload file' });
-    }
+    });
 });
 
 export default router;

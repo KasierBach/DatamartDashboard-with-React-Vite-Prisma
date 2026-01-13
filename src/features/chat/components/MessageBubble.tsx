@@ -113,6 +113,14 @@ export function MessageBubble({
                                     </div>
                                 )}
 
+                                {/* Pinned indicator */}
+                                {message.pinnedMessages && message.pinnedMessages.length > 0 && (
+                                    <div className="flex items-center gap-1 text-[10px] text-primary/80 mb-1 font-semibold">
+                                        <Pin className="h-3 w-3 fill-primary" />
+                                        <span>Đã ghim</span>
+                                    </div>
+                                )}
+
                                 {/* Reply preview */}
                                 {message.reply_to && (
                                     <ReplyPreview message={message.reply_to as any} isInBubble />
@@ -272,10 +280,13 @@ export function MessageBubble({
                             {onPin && (
                                 <button
                                     onClick={() => onPin(message)}
-                                    className="p-1 rounded hover:bg-muted"
-                                    title="Ghim"
+                                    className={cn(
+                                        "p-1 rounded hover:bg-muted transition-colors",
+                                        message.pinnedMessages && message.pinnedMessages.length > 0 ? "text-primary bg-primary/10" : "text-muted-foreground"
+                                    )}
+                                    title={message.pinnedMessages && message.pinnedMessages.length > 0 ? "Bỏ ghim" : "Ghim"}
                                 >
-                                    <Pin className="h-3.5 w-3.5 text-muted-foreground" />
+                                    <Pin className={cn("h-3.5 w-3.5", message.pinnedMessages && message.pinnedMessages.length > 0 && "fill-primary")} />
                                 </button>
                             )}
 

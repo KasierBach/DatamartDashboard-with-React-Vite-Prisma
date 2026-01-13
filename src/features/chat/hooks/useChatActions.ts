@@ -13,7 +13,7 @@ interface UseChatActionsReturn {
     newMessage: string;
     editingMessage: Message | null;
     replyingMessage: Message | null;
-    inputRef: React.RefObject<HTMLInputElement>;
+    inputRef: React.RefObject<HTMLTextAreaElement>;
     setNewMessage: (message: string) => void;
     handleSendMessage: () => void;
     handleStartEdit: (msg: Message) => void;
@@ -22,7 +22,7 @@ interface UseChatActionsReturn {
     handleCancelReply: () => void;
     handleDeleteMessage: (msg: Message) => void;
     handleRecallMessage: (msg: Message) => void;
-    handleTyping: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
+    handleTyping: (e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement> | string) => void;
     handleVoiceSend: (voiceUrl: string, duration: number) => void;
     attachment: File | null;
     handleFileSelect: (file: File) => void;
@@ -37,7 +37,7 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
     const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
     const [attachment, setAttachment] = useState<File | null>(null);
     const [isSending, setIsSending] = useState(false);
-    const inputRef = useRef<HTMLInputElement>(null);
+    const inputRef = useRef<HTMLTextAreaElement>(null);
 
     const { sendMessage, editMessage, deleteMessage, undeleteMessage, recallMessage, startTyping, stopTyping } = useSocket();
 
@@ -167,7 +167,7 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
     }, [selectedConversation, recallMessage]);
 
     // Handle typing
-    const handleTyping = useCallback((e: React.ChangeEvent<HTMLInputElement> | string) => {
+    const handleTyping = useCallback((e: React.ChangeEvent<HTMLTextAreaElement | HTMLInputElement> | string) => {
         const val = typeof e === 'string' ? e : e.target.value;
         setNewMessage(val);
         if (selectedConversation) {

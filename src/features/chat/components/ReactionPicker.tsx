@@ -1,6 +1,11 @@
-import { useState, useRef, useEffect } from 'react';
 import { Smile } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '😡'];
 
@@ -10,54 +15,34 @@ interface ReactionPickerProps {
 }
 
 export function ReactionPicker({ onSelect, className }: ReactionPickerProps) {
-    const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    // Close on click outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-
-        if (isOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [isOpen]);
-
-    const handleSelect = (emoji: string) => {
-        onSelect(emoji);
-        setIsOpen(false);
-    };
-
     return (
-        <div ref={containerRef} className="relative">
-            <button
-                onClick={() => setIsOpen(!isOpen)}
-                className={cn(
-                    'p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100',
-                    className
-                )}
-                title="Thêm biểu cảm"
+        <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+                <button
+                    className={cn(
+                        'p-1 rounded hover:bg-muted transition-colors opacity-0 group-hover:opacity-100',
+                        className
+                    )}
+                    title="Thêm biểu cảm"
+                >
+                    <Smile className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent
+                side="top"
+                align="center"
+                className="flex items-center gap-0.5 p-1 min-w-0 shadow-lg border-muted mb-1"
             >
-                <Smile className="h-3.5 w-3.5 text-muted-foreground" />
-            </button>
-
-            {isOpen && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 bg-popover border rounded-lg shadow-lg p-1 flex items-center gap-0.5 z-50">
-                    {QUICK_REACTIONS.map((emoji) => (
-                        <button
-                            key={emoji}
-                            onClick={() => handleSelect(emoji)}
-                            className="p-1.5 hover:bg-muted rounded transition-colors text-lg"
-                        >
-                            {emoji}
-                        </button>
-                    ))}
-                </div>
-            )}
-        </div>
+                {QUICK_REACTIONS.map((emoji) => (
+                    <DropdownMenuItem
+                        key={emoji}
+                        onSelect={() => onSelect(emoji)}
+                        className="p-1.5 hover:bg-muted rounded transition-colors text-lg flex items-center justify-center cursor-pointer focus:bg-muted"
+                    >
+                        {emoji}
+                    </DropdownMenuItem>
+                ))}
+            </DropdownMenuContent>
+        </DropdownMenu>
     );
 }

@@ -339,13 +339,129 @@ export const initializeSocket = (io: Server) => {
                     }
                 });
 
-                // Broadcast to everyone in conversation
+                // Unpin if it was pinned
+                await prisma.pinnedMessage.deleteMany({
+                    where: { message_id: data.messageId }
+                });
+
+                // Broadcast recall to everyone in conversation
                 io.to(`conversation:${data.conversationId}`).emit('message:recalled', {
+                    messageId: data.messageId,
+                    conversationId: data.conversationId
+                });
+
+                // Also emit unpinned event so UI updates the pin bar
+                io.to(`conversation:${data.conversationId}`).emit('message:unpinned', {
                     messageId: data.messageId,
                     conversationId: data.conversationId
                 });
             } catch (error) {
                 console.error('Error recalling message:', error);
+            }
+        });
+
+        // Pin message
+        socket.on('message:pin', async (data: { messageId: number; userId: number; conversationId: number }) => {
+            try {
+                const pinned = await prisma.pinnedMessage.create({
+                    data: {
+                        conversation_id: data.conversationId,
+                        message_id: data.messageId,
+                        pinned_by: data.userId
+                    },
+                    include: {
+                        message: {
+                            include: {
+                                sender: { select: { id: true, username: true, name: true, avatar: true } }
+                            }
+                        }
+                    }
+                });
+
+                io.to(`conversation:${data.conversationId}`).emit('message:pinned', {
+                    messageId: data.messageId,
+                    conversationId: data.conversationId,
+                    pinnedBy: data.userId,
+                    pinnedMessage: pinned
+                });
+            } catch (error) {
+                console.error('Error pinning message:', error);
+            }
+        });
+
+        // Unpin message
+        socket.on('message:unpin', async (data: { messageId: number; userId: number; conversationId: number }) => {
+            try {
+                await prisma.pinnedMessage.deleteMany({
+                    where: {
+                        conversation_id: data.conversationId,
+                        message_id: data.messageId
+                    }
+                });
+
+                io.to(`conversation:${data.conversationId}`).emit('message:unpinned', {
+                    messageId: data.messageId,
+                    conversationId: data.conversationId
+                });
+            } catch (error) {
+                console.error('Error unpinning message:', error);
+            }
+        });
+
+        // Add reaction
+        socket.on('message:reaction:add', async (data: { messageId: number; userId: number; emoji: string; conversationId: number }) => {
+            try {
+                await prisma.messageReaction.create({
+                    data: {
+                        message_id: data.messageId,
+                        user_id: data.userId,
+                        emoji: data.emoji
+                    }
+                });
+
+                const reactions = await prisma.messageReaction.findMany({
+                    where: { message_id: data.messageId }
+                });
+
+                io.to(`conversation:${data.conversationId}`).emit('message:reactions:update', {
+                    messageId: data.messageId,
+                    reactions
+                });
+            } catch (error: any) {
+                if (error.code === 'P2002') {
+                    const reactions = await prisma.messageReaction.findMany({
+                        where: { message_id: data.messageId }
+                    });
+                    io.to(`conversation:${data.conversationId}`).emit('message:reactions:update', {
+                        messageId: data.messageId,
+                        reactions
+                    });
+                }
+                console.error('Error adding reaction:', error);
+            }
+        });
+
+        // Remove reaction
+        socket.on('message:reaction:remove', async (data: { messageId: number; userId: number; emoji: string; conversationId: number }) => {
+            try {
+                await prisma.messageReaction.deleteMany({
+                    where: {
+                        message_id: data.messageId,
+                        user_id: data.userId,
+                        emoji: data.emoji
+                    }
+                });
+
+                const reactions = await prisma.messageReaction.findMany({
+                    where: { message_id: data.messageId }
+                });
+
+                io.to(`conversation:${data.conversationId}`).emit('message:reactions:update', {
+                    messageId: data.messageId,
+                    reactions
+                });
+            } catch (error) {
+                console.error('Error removing reaction:', error);
             }
         });
 
