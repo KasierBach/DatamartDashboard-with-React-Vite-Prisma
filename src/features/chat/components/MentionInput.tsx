@@ -13,7 +13,6 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
     ({ users, onValueChange, onMention, className, ...props }, ref) => {
         const [showSuggestions, setShowSuggestions] = useState(false);
         const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-        const [mentionQuery, setMentionQuery] = useState('');
         const [mentionStartPos, setMentionStartPos] = useState(-1);
         const [selectedIndex, setSelectedIndex] = useState(0);
         const inputRef = useRef<HTMLInputElement>(null);
@@ -23,8 +22,8 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
         useEffect(() => {
             if (ref && typeof ref === 'function') {
                 ref(inputRef.current);
-            } else if (ref) {
-                ref.current = inputRef.current;
+            } else if (ref && 'current' in ref) {
+                (ref as React.MutableRefObject<HTMLInputElement | null>).current = inputRef.current;
             }
         }, [ref]);
 
@@ -42,7 +41,6 @@ export const MentionInput = forwardRef<HTMLInputElement, MentionInputProps>(
                 const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
                 // Check if there's no space after @
                 if (!textAfterAt.includes(' ')) {
-                    setMentionQuery(textAfterAt.toLowerCase());
                     setMentionStartPos(lastAtIndex);
                     const filtered = users.filter(u =>
                         u.name?.toLowerCase().includes(textAfterAt.toLowerCase()) ||
