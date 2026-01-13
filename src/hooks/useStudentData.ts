@@ -102,7 +102,7 @@ export function useStudentData() {
         limit,
         search,
         sortField,
-        sortOrder,
+        sortOrder,  
         status,
         setPage,
         setLimit,

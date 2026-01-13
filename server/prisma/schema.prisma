@@ -49,14 +49,15 @@ model FactScore {
 }
 
 model Conversation {
-  id           Int                  @id @default(autoincrement())
-  type         String               @default("direct")
-  name         String?
-  group_avatar String?              @map("group_avatar")
-  created_at   DateTime             @default(now()) @map("created_at")
-  updated_at   DateTime             @updatedAt @map("updated_at")
-  members      ConversationMember[]
-  messages     Message[]
+  id             Int                  @id @default(autoincrement())
+  type           String               @default("direct")
+  name           String?
+  group_avatar   String?              @map("group_avatar")
+  created_at     DateTime             @default(now()) @map("created_at")
+  updated_at     DateTime             @updatedAt @map("updated_at")
+  members        ConversationMember[]
+  messages       Message[]
+  pinnedMessages PinnedMessage[]
 
   @@map("conversations")
 }
@@ -85,10 +86,20 @@ model Message {
   is_recalled     Boolean         @default(false) @map("is_recalled")
   attachment_url  String?         @map("attachment_url")
   attachment_type String?         @map("attachment_type")
+  // New fields for enhanced features
+  reply_to_id     Int?            @map("reply_to_id")
+  forwarded_from  Int?            @map("forwarded_from")
+  voice_url       String?         @map("voice_url")
+  voice_duration  Int?            @map("voice_duration")
+  // Relations
   deletedFor      MessageDelete[]
   statuses        MessageStatus[]
+  reactions       MessageReaction[]
+  pinnedIn        PinnedMessage[]
   conversation    Conversation    @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
   sender          User            @relation(fields: [sender_id], references: [id])
+  reply_to        Message?        @relation("MessageReplies", fields: [reply_to_id], references: [id], onDelete: SetNull)
+  replies         Message[]       @relation("MessageReplies")
 
   @@map("messages")
 }
@@ -114,6 +125,31 @@ model MessageStatus {
 
   @@unique([message_id, user_id])
   @@map("message_statuses")
+}
+
+model MessageReaction {
+  id         Int      @id @default(autoincrement())
+  message_id Int      @map("message_id")
+  user_id    Int      @map("user_id")
+  emoji      String
+  created_at DateTime @default(now()) @map("created_at")
+  message    Message  @relation(fields: [message_id], references: [id], onDelete: Cascade)
+
+  @@unique([message_id, user_id, emoji])
+  @@map("message_reactions")
+}
+
+model PinnedMessage {
+  id              Int          @id @default(autoincrement())
+  conversation_id Int          @map("conversation_id")
+  message_id      Int          @map("message_id")
+  pinned_by       Int          @map("pinned_by")
+  pinned_at       DateTime     @default(now()) @map("pinned_at")
+  conversation    Conversation @relation(fields: [conversation_id], references: [id], onDelete: Cascade)
+  message         Message      @relation(fields: [message_id], references: [id], onDelete: Cascade)
+
+  @@unique([conversation_id, message_id])
+  @@map("pinned_messages")
 }
 
 model StudentDetail {

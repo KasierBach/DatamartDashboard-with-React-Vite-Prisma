@@ -12,14 +12,18 @@ interface UseChatActionsProps {
 interface UseChatActionsReturn {
     newMessage: string;
     editingMessage: Message | null;
+    replyingMessage: Message | null;
     inputRef: React.RefObject<HTMLInputElement>;
     setNewMessage: (message: string) => void;
     handleSendMessage: () => void;
     handleStartEdit: (msg: Message) => void;
     handleCancelEdit: () => void;
+    handleReply: (msg: Message) => void;
+    handleCancelReply: () => void;
     handleDeleteMessage: (msg: Message) => void;
     handleRecallMessage: (msg: Message) => void;
-    handleTyping: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    handleTyping: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
+    handleVoiceSend: (voiceUrl: string, duration: number) => void;
     attachment: File | null;
     handleFileSelect: (file: File) => void;
     handleRemoveAttachment: () => void;
@@ -30,6 +34,7 @@ interface UseChatActionsReturn {
 export function useChatActions({ selectedConversation, restoreMessage }: UseChatActionsProps): UseChatActionsReturn {
     const [newMessage, setNewMessage] = useState('');
     const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+    const [replyingMessage, setReplyingMessage] = useState<Message | null>(null);
     const [attachment, setAttachment] = useState<File | null>(null);
     const [isSending, setIsSending] = useState(false);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -89,11 +94,13 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
                     selectedConversation.id,
                     newMessage.trim(),
                     attachmentUrl,
-                    attachmentType
+                    attachmentType,
+                    replyingMessage?.id
                 );
             }
             setNewMessage('');
             setAttachment(null);
+            setReplyingMessage(null);
             stopTyping(selectedConversation.id);
             inputRef.current?.focus();
         } catch (error) {
@@ -101,11 +108,12 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
         } finally {
             setIsSending(false);
         }
-    }, [newMessage, attachment, selectedConversation, editingMessage, sendMessage, editMessage, stopTyping, isSending]);
+    }, [newMessage, attachment, selectedConversation, editingMessage, replyingMessage, sendMessage, editMessage, stopTyping, isSending]);
 
     // Start editing a message
     const handleStartEdit = useCallback((msg: Message) => {
         setEditingMessage(msg);
+        setReplyingMessage(null);
         setNewMessage(msg.content);
         inputRef.current?.focus();
     }, []);
@@ -114,6 +122,18 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
     const handleCancelEdit = useCallback(() => {
         setEditingMessage(null);
         setNewMessage('');
+    }, []);
+
+    // Handle reply
+    const handleReply = useCallback((msg: Message) => {
+        setReplyingMessage(msg);
+        setEditingMessage(null);
+        inputRef.current?.focus();
+    }, []);
+
+    // Cancel reply
+    const handleCancelReply = useCallback(() => {
+        setReplyingMessage(null);
     }, []);
 
     // Delete message (for self) with undo option
@@ -147,24 +167,48 @@ export function useChatActions({ selectedConversation, restoreMessage }: UseChat
     }, [selectedConversation, recallMessage]);
 
     // Handle typing
-    const handleTyping = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setNewMessage(e.target.value);
-        if (selectedConversation && e.target.value) {
-            startTyping(selectedConversation.id);
+    const handleTyping = useCallback((e: React.ChangeEvent<HTMLInputElement> | string) => {
+        const val = typeof e === 'string' ? e : e.target.value;
+        setNewMessage(val);
+        if (selectedConversation) {
+            if (val.trim()) {
+                startTyping(selectedConversation.id);
+            } else {
+                stopTyping(selectedConversation.id);
+            }
         }
-    }, [selectedConversation, startTyping]);
+    }, [selectedConversation, startTyping, stopTyping]);
+
+    // Handle voice message send
+    const handleVoiceSend = useCallback((voiceUrl: string, duration: number) => {
+        if (!selectedConversation) return;
+        sendMessage(
+            selectedConversation.id,
+            '',
+            undefined,
+            undefined,
+            replyingMessage?.id,
+            voiceUrl,
+            duration
+        );
+        setReplyingMessage(null);
+    }, [selectedConversation, sendMessage, replyingMessage]);
 
     return {
         newMessage,
         editingMessage,
+        replyingMessage,
         inputRef,
         setNewMessage,
         handleSendMessage,
         handleStartEdit,
         handleCancelEdit,
+        handleReply,
+        handleCancelReply,
         handleDeleteMessage,
         handleRecallMessage,
         handleTyping,
+        handleVoiceSend,
         attachment,
         handleFileSelect,
         handleRemoveAttachment,

@@ -29,6 +29,9 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
         onMessageDeleted,
         onMessageUndeleted,
         onMessageRecalled,
+        onMessagePinned,
+        onMessageUnpinned,
+        onReactionUpdate,
         markAsSeen
     } = useSocket();
 
@@ -104,6 +107,28 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
             }
         });
 
+        const unsubPinned = onMessagePinned((data) => {
+            if (selectedConversationIdRef.current === data.conversationId) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === data.messageId ? { ...msg, pinnedMessages: [{ pinned_by: data.pinnedBy }] } : msg
+                ));
+            }
+        });
+
+        const unsubUnpinned = onMessageUnpinned((data) => {
+            if (selectedConversationIdRef.current === data.conversationId) {
+                setMessages(prev => prev.map(msg =>
+                    msg.id === data.messageId ? { ...msg, pinnedMessages: [] } : msg
+                ));
+            }
+        });
+
+        const unsubReactions = onReactionUpdate((data) => {
+            setMessages(prev => prev.map(msg =>
+                msg.id === data.messageId ? { ...msg, reactions: data.reactions } : msg
+            ));
+        });
+
         const unsubUndeleted = onMessageUndeleted((data) => {
             console.log('onMessageUndeleted received:', data);
             // Use conversationId from event data (more reliable than message.conversation_id)
@@ -127,6 +152,9 @@ export function useMessages({ userId, selectedConversation }: UseMessagesProps):
             unsubEdited();
             unsubDeleted();
             unsubRecalled();
+            unsubPinned();
+            unsubUnpinned();
+            unsubReactions();
             unsubUndeleted();
         };
     }, [onNewMessage, onMessageStatus, onMessageEdited, onMessageDeleted, onMessageUndeleted, onMessageRecalled, userId, markAsSeen]);

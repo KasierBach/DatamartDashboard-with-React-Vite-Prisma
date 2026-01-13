@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from './AuthContext';
 import API_BASE_URL from '../config/api';
@@ -30,24 +30,31 @@ interface SocketContextType {
     isConnected: boolean;
     onlineUsers: { userId: number; name: string }[];
     typingUsers: Map<number, TypingUser[]>;
-    sendMessage: (conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string) => void;
+    sendMessage: (conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string, replyToId?: number, voiceUrl?: string, voiceDuration?: number) => void;
     editMessage: (messageId: number, content: string, conversationId: number) => void;
     deleteMessage: (messageId: number, conversationId: number) => void;
     undeleteMessage: (messageId: number, conversationId: number) => void;
     recallMessage: (messageId: number, conversationId: number) => void;
+    pinMessage: (messageId: number, conversationId: number) => void;
+    unpinMessage: (messageId: number, conversationId: number) => void;
+    addReaction: (messageId: number, emoji: string, conversationId: number) => void;
+    removeReaction: (messageId: number, emoji: string, conversationId: number) => void;
     markAsDelivered: (messageId: number) => void;
     markAsSeen: (messageId: number) => void;
     startTyping: (conversationId: number) => void;
     stopTyping: (conversationId: number) => void;
     joinConversation: (conversationId: number) => void;
     leaveConversation: (conversationId: number) => void;
-    onNewMessage: (callback: (message: Message) => void) => () => void;
+    onNewMessage: (callback: (message: any) => void) => () => void;
     onMessageStatus: (callback: (data: { messageId: number; status: string; userId: number }) => void) => () => void;
-    onMessageEdited: (callback: (message: Message) => void) => () => void;
+    onMessageEdited: (callback: (message: any) => void) => () => void;
     onMessageDeleted: (callback: (data: { messageId: number; userId: number }) => void) => () => void;
-    onMessageUndeleted: (callback: (data: { message: Message; userId: number; conversationId: number }) => void) => () => void;
+    onMessageUndeleted: (callback: (data: { message: any; userId: number; conversationId: number }) => void) => () => void;
     onMessageRecalled: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
-    onNotification: (callback: (data: { conversationId: number; message: Message }) => void) => () => void;
+    onMessagePinned: (callback: (data: { messageId: number; conversationId: number; pinnedBy: number }) => void) => () => void;
+    onMessageUnpinned: (callback: (data: { messageId: number; conversationId: number }) => void) => () => void;
+    onReactionUpdate: (callback: (data: { messageId: number; reactions: any[] }) => void) => () => void;
+    onNotification: (callback: (data: { conversationId: number; message: any }) => void) => () => void;
     onConversationUpdated: (callback: (data: any) => void) => () => void;
     onConversationNew: (callback: (data: any) => void) => () => void;
     onConversationRemoved: (callback: (data: { id: number }) => void) => () => void;
@@ -63,9 +70,8 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const [socket, setSocket] = useState<Socket | null>(null);
     const [isConnected, setIsConnected] = useState(false);
     const [onlineUsers, setOnlineUsers] = useState<{ userId: number; name: string }[]>([]);
-    const [typingUsers] = useState<Map<number, TypingUser[]>>(new Map());
+    const [typingUsers, setTypingUsers] = useState<Map<number, TypingUser[]>>(new Map());
     const [unreadCounts] = useState<Map<number, number>>(new Map());
-    const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Get current user ID
     const currentUserId = user?.id || 0;
@@ -103,8 +109,22 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             setOnlineUsers(users);
         });
 
-        newSocket.on('typing:update', (_data: { userId: number; userName?: string; isTyping: boolean; conversationId?: number }) => {
-            // This will be handled by conversation-specific listeners
+        newSocket.on('typing:update', (data: { userId: number; userName?: string; isTyping: boolean; conversationId?: number }) => {
+            if (!data.conversationId) return;
+
+            setTypingUsers(prev => {
+                const newMap = new Map(prev);
+                const currentTyping = newMap.get(data.conversationId!) || [];
+
+                if (data.isTyping) {
+                    if (!currentTyping.some(u => u.userId === data.userId)) {
+                        newMap.set(data.conversationId!, [...currentTyping, { userId: data.userId, userName: data.userName || 'Người dùng' }]);
+                    }
+                } else {
+                    newMap.set(data.conversationId!, currentTyping.filter(u => u.userId !== data.userId));
+                }
+                return newMap;
+            });
         });
 
         setSocket(newSocket);
@@ -115,14 +135,17 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     }, [user]);
 
     // Send message
-    const sendMessage = useCallback((conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string) => {
+    const sendMessage = useCallback((conversationId: number, content: string, attachmentUrl?: string, attachmentType?: string, replyToId?: number, voiceUrl?: string, voiceDuration?: number) => {
         if (!socket || !user) return;
         socket.emit('message:send', {
             conversationId,
             senderId: user.id,
             content,
             attachmentUrl,
-            attachmentType
+            attachmentType,
+            replyToId,
+            voiceUrl,
+            voiceDuration
         });
     }, [socket, user]);
 
@@ -142,14 +165,6 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     const startTyping = useCallback((conversationId: number) => {
         if (!socket || !user) return;
         socket.emit('typing:start', { conversationId, userId: user.id, userName: user.name });
-
-        // Auto-stop after 3 seconds
-        if (typingTimeoutRef.current) {
-            clearTimeout(typingTimeoutRef.current);
-        }
-        typingTimeoutRef.current = setTimeout(() => {
-            stopTyping(conversationId);
-        }, 3000);
     }, [socket, user]);
 
     const stopTyping = useCallback((conversationId: number) => {
@@ -211,6 +226,30 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket.emit('message:recall', { messageId, userId: user.id, conversationId });
     }, [socket, user]);
 
+    // Pin message
+    const pinMessage = useCallback((messageId: number, conversationId: number) => {
+        if (!socket || !user) return;
+        socket.emit('message:pin', { messageId, userId: user.id, conversationId });
+    }, [socket, user]);
+
+    // Unpin message
+    const unpinMessage = useCallback((messageId: number, conversationId: number) => {
+        if (!socket || !user) return;
+        socket.emit('message:unpin', { messageId, userId: user.id, conversationId });
+    }, [socket, user]);
+
+    // Add reaction
+    const addReaction = useCallback((messageId: number, emoji: string, conversationId: number) => {
+        if (!socket || !user) return;
+        socket.emit('message:reaction:add', { messageId, userId: user.id, emoji, conversationId });
+    }, [socket, user]);
+
+    // Remove reaction
+    const removeReaction = useCallback((messageId: number, emoji: string, conversationId: number) => {
+        if (!socket || !user) return;
+        socket.emit('message:reaction:remove', { messageId, userId: user.id, emoji, conversationId });
+    }, [socket, user]);
+
     // Message action event listeners
     const onMessageEdited = useCallback((callback: (message: Message) => void) => {
         if (!socket) return () => { };
@@ -234,6 +273,24 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         if (!socket) return () => { };
         socket.on('message:recalled', callback);
         return () => socket.off('message:recalled', callback);
+    }, [socket]);
+
+    const onMessagePinned = useCallback((callback: (data: { messageId: number; conversationId: number; pinnedBy: number }) => void) => {
+        if (!socket) return () => { };
+        socket.on('message:pinned', callback);
+        return () => socket.off('message:pinned', callback);
+    }, [socket]);
+
+    const onMessageUnpinned = useCallback((callback: (data: { messageId: number; conversationId: number }) => void) => {
+        if (!socket) return () => { };
+        socket.on('message:unpinned', callback);
+        return () => socket.off('message:unpinned', callback);
+    }, [socket]);
+
+    const onReactionUpdate = useCallback((callback: (data: { messageId: number; reactions: any[] }) => void) => {
+        if (!socket) return () => { };
+        socket.on('message:reactions:update', callback);
+        return () => socket.off('message:reactions:update', callback);
     }, [socket]);
 
     const onConversationUpdated = useCallback((callback: (data: any) => void) => {
@@ -265,6 +322,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             deleteMessage,
             undeleteMessage,
             recallMessage,
+            pinMessage,
+            unpinMessage,
+            addReaction,
+            removeReaction,
             markAsDelivered,
             markAsSeen,
             startTyping,
@@ -277,6 +338,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
             onMessageDeleted,
             onMessageUndeleted,
             onMessageRecalled,
+            onMessagePinned,
+            onMessageUnpinned,
+            onReactionUpdate,
             onNotification,
             onConversationUpdated,
             onConversationNew,

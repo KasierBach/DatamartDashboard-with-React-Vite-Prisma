@@ -1,9 +1,13 @@
-import { Check, CheckCheck, Pencil, RotateCcw, Trash2, FileText, Download } from 'lucide-react';
+import { Check, CheckCheck, Pencil, RotateCcw, Trash2, FileText, Download, Reply, Forward, Pin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import API_BASE_URL from '@/config/api';
 import type { Message } from '../types';
 import { useState } from 'react';
 import { ImagePreviewDialog } from './ImagePreviewDialog';
+import { ReplyPreview } from './ReplyPreview';
+import { ReactionDisplay } from './ReactionDisplay';
+import { ReactionPicker } from './ReactionPicker';
+import { VoicePlayer } from './VoicePlayer';
 
 interface MessageBubbleProps {
     message: Message;
@@ -14,6 +18,10 @@ interface MessageBubbleProps {
     onEdit: (msg: Message) => void;
     onDelete: (msg: Message) => void;
     onRecall: (msg: Message) => void;
+    onReply?: (msg: Message) => void;
+    onForward?: (msg: Message) => void;
+    onPin?: (msg: Message) => void;
+    onReaction?: (msgId: number, emoji: string, hasUserReacted: boolean) => void;
 }
 
 export function MessageBubble({
@@ -25,6 +33,10 @@ export function MessageBubble({
     onEdit,
     onDelete,
     onRecall,
+    onReply,
+    onForward,
+    onPin,
+    onReaction,
 }: MessageBubbleProps) {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -93,6 +105,28 @@ export function MessageBubble({
                             <p>Tin nhắn đã thu hồi</p>
                         ) : (
                             <>
+                                {/* Forwarded indicator */}
+                                {message.forwarded_from && (
+                                    <div className="flex items-center gap-1 text-[10px] opacity-60 mb-1">
+                                        <Forward className="h-3 w-3" />
+                                        <span>Tin nhắn được chuyển tiếp</span>
+                                    </div>
+                                )}
+
+                                {/* Reply preview */}
+                                {message.reply_to && (
+                                    <ReplyPreview message={message.reply_to as any} isInBubble />
+                                )}
+
+                                {/* Voice message */}
+                                {message.voice_url && (
+                                    <VoicePlayer
+                                        src={message.voice_url.startsWith('http') ? message.voice_url : `${API_BASE_URL}${message.voice_url}`}
+                                        duration={message.voice_duration}
+                                        className="mb-2"
+                                    />
+                                )}
+
                                 {message.attachment_url && (
                                     <div className="mb-2 rounded-lg overflow-hidden max-w-sm">
                                         {message.attachment_type === 'image' ? (
@@ -189,12 +223,62 @@ export function MessageBubble({
                         )}
                     </div>
 
+                    {/* Reactions display */}
+                    {!message.is_recalled && message.reactions && message.reactions.length > 0 && (
+                        <ReactionDisplay
+                            reactions={message.reactions}
+                            currentUserId={currentUserId}
+                            isOwn={isOwn}
+                            onReactionClick={(emoji, hasUserReacted) => {
+                                onReaction?.(message.id, emoji, hasUserReacted);
+                            }}
+                        />
+                    )}
+
                     {/* Action buttons (Absolute positioned for small offset) */}
                     {!message.is_recalled && (
                         <div className={cn(
                             "opacity-0 group-hover:opacity-100 transition-opacity absolute top-1/2 -translate-y-1/2 flex items-center gap-0.5 px-2",
                             isOwn ? "right-full mr-2" : "left-full ml-2"
                         )}>
+                            {/* Reaction picker */}
+                            <ReactionPicker
+                                onSelect={(emoji) => onReaction?.(message.id, emoji, false)}
+                            />
+
+                            {/* Reply button */}
+                            {onReply && (
+                                <button
+                                    onClick={() => onReply(message)}
+                                    className="p-1 rounded hover:bg-muted"
+                                    title="Trả lời"
+                                >
+                                    <Reply className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                            )}
+
+                            {/* Forward button */}
+                            {onForward && (
+                                <button
+                                    onClick={() => onForward(message)}
+                                    className="p-1 rounded hover:bg-muted"
+                                    title="Chuyển tiếp"
+                                >
+                                    <Forward className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                            )}
+
+                            {/* Pin button */}
+                            {onPin && (
+                                <button
+                                    onClick={() => onPin(message)}
+                                    className="p-1 rounded hover:bg-muted"
+                                    title="Ghim"
+                                >
+                                    <Pin className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                            )}
+
                             {isOwn && (
                                 <>
                                     <button

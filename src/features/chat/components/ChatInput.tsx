@@ -1,54 +1,72 @@
 import { Pencil, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { AttachmentButton } from './AttachmentButton';
-import { Input } from '@/components/ui/input';
+import { MentionInput } from './MentionInput';
 import { EmojiPicker } from './EmojiPicker';
-import type { Message } from '../types';
+import { ReplyPreview } from './ReplyPreview';
+import { VoiceRecorder } from './VoiceRecorder';
+import type { Message, User } from '../types';
 
 interface ChatInputProps {
     value: string;
     editingMessage: Message | null;
+    replyingMessage?: Message | null;
     inputRef: React.RefObject<HTMLInputElement | null>;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+    onChange: (e: React.ChangeEvent<HTMLInputElement> | string) => void;
     onSend: () => void;
+    onVoiceSend?: (voiceUrl: string, duration: number) => void;
     onCancelEdit: () => void;
+    onCancelReply?: () => void;
     onFocus?: () => void;
     attachment: File | null;
     onFileSelect: (file: File) => void;
     onRemoveAttachment: () => void;
     onEmojiSelect: (emoji: string) => void;
     isSending?: boolean;
+    conversationUsers?: User[];
 }
 
 export function ChatInput({
     value,
     editingMessage,
+    replyingMessage,
     inputRef,
     onChange,
     onSend,
+    onVoiceSend,
     onCancelEdit,
+    onCancelReply,
     onFocus,
     attachment,
     onFileSelect,
     onRemoveAttachment,
     onEmojiSelect,
     isSending,
+    conversationUsers = [],
 }: ChatInputProps) {
     return (
         <div className="p-4 border-t">
             {editingMessage && (
-                <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 mb-2 p-2 bg-muted rounded-lg border-l-4 border-primary">
                     <Pencil className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground flex-1">
+                    <span className="text-sm text-primary font-medium flex-1">
                         Đang chỉnh sửa tin nhắn
                     </span>
                     <button
                         onClick={onCancelEdit}
-                        className="p-1 hover:bg-background rounded"
+                        className="p-1 hover:bg-background rounded transition-colors"
                     >
                         <X className="h-4 w-4" />
                     </button>
                 </div>
+            )}
+
+            {replyingMessage && (
+                <ReplyPreview
+                    message={replyingMessage}
+                    onCancel={onCancelReply}
+                    className="mb-2"
+                />
             )}
 
             {attachment && (
@@ -76,22 +94,37 @@ export function ChatInput({
 
             <form
                 onSubmit={e => { e.preventDefault(); onSend(); }}
-                className="flex gap-2"
+                className="flex items-end gap-2"
             >
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 mb-1">
                     <EmojiPicker onSelect={onEmojiSelect} disabled={!!editingMessage} />
                     <AttachmentButton onFileSelect={onFileSelect} disabled={!!editingMessage} />
+                    {!editingMessage && onVoiceSend && (
+                        <VoiceRecorder
+                            onRecordComplete={onVoiceSend}
+                            onCancel={() => { }}
+                            disabled={!!attachment || !!value.trim()}
+                        />
+                    )}
                 </div>
-                <Input
+
+                <MentionInput
                     ref={inputRef as React.RefObject<HTMLInputElement>}
                     value={value}
-                    onChange={onChange}
+                    onValueChange={onChange}
                     onFocus={onFocus}
                     placeholder={attachment ? "Thêm chú thích..." : "Nhập tin nhắn..."}
                     className="flex-1"
                     disabled={isSending}
+                    users={conversationUsers}
                 />
-                <Button type="submit" size="icon" disabled={(!!(!value.trim() && !attachment)) || isSending}>
+
+                <Button
+                    type="submit"
+                    size="icon"
+                    className="mb-1"
+                    disabled={(!!(!value.trim() && !attachment)) || isSending}
+                >
                     <Send className="h-4 w-4" />
                 </Button>
             </form>

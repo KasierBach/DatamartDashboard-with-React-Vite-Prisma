@@ -756,6 +756,285 @@ router.post('/groups/:id/leave', async (req: Request, res: Response) => {
     }
 });
 
+// ==========================================
+// ENHANCED CHAT FEATURES - NEW ROUTES
+// ==========================================
 
+// Search messages in a conversation
+router.get('/conversations/:id/messages/search', async (req: Request, res: Response) => {
+    try {
+        const conversationId = parseInt(req.params.id);
+        const userId = parseInt(req.query.userId as string);
+        const query = req.query.q as string;
+
+        if (!query || query.trim().length === 0) {
+            return res.json([]);
+        }
+
+        const messages = await prisma.message.findMany({
+            where: {
+                conversation_id: conversationId,
+                content: { contains: query, mode: 'insensitive' },
+                is_recalled: false,
+                deletedFor: { none: { user_id: userId } }
+            },
+            include: {
+                sender: { select: { id: true, username: true, name: true, avatar: true } },
+                reactions: true
+            },
+            orderBy: { created_at: 'desc' },
+            take: 50
+        });
+
+        res.json(messages);
+    } catch (error) {
+        console.error('Error searching messages:', error);
+        res.status(500).json({ error: 'Failed to search messages' });
+    }
+});
+
+// Add reaction to a message
+router.post('/messages/:id/reactions', async (req: Request, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.id);
+        const { userId, emoji } = req.body;
+
+        if (!userId || !emoji) {
+            return res.status(400).json({ error: 'userId and emoji are required' });
+        }
+
+        const reaction = await prisma.messageReaction.create({
+            data: {
+                message_id: messageId,
+                user_id: userId,
+                emoji
+            }
+        });
+
+        // Get updated reactions for the message
+        const reactions = await prisma.messageReaction.findMany({
+            where: { message_id: messageId }
+        });
+
+        // Emit to conversation via socket
+        const message = await prisma.message.findUnique({ where: { id: messageId } });
+        if (message) {
+            (req as any).io.to(`conversation:${message.conversation_id}`).emit('reaction:updated', {
+                messageId,
+                reactions
+            });
+        }
+
+        res.json({ reaction, reactions });
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            // Duplicate reaction, return existing
+            const messageId = parseInt(req.params.id);
+            const reactions = await prisma.messageReaction.findMany({
+                where: { message_id: messageId }
+            });
+            return res.json({ reactions });
+        }
+        console.error('Error adding reaction:', error);
+        res.status(500).json({ error: 'Failed to add reaction' });
+    }
+});
+
+// Remove reaction from a message
+router.delete('/messages/:id/reactions/:emoji', async (req: Request, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.id);
+        const emoji = decodeURIComponent(req.params.emoji);
+        const userId = parseInt(req.query.userId as string);
+
+        if (!userId) {
+            return res.status(400).json({ error: 'userId is required' });
+        }
+
+        await prisma.messageReaction.deleteMany({
+            where: {
+                message_id: messageId,
+                user_id: userId,
+                emoji
+            }
+        });
+
+        // Get updated reactions
+        const reactions = await prisma.messageReaction.findMany({
+            where: { message_id: messageId }
+        });
+
+        // Emit to conversation
+        const message = await prisma.message.findUnique({ where: { id: messageId } });
+        if (message) {
+            (req as any).io.to(`conversation:${message.conversation_id}`).emit('reaction:updated', {
+                messageId,
+                reactions
+            });
+        }
+
+        res.json({ reactions });
+    } catch (error) {
+        console.error('Error removing reaction:', error);
+        res.status(500).json({ error: 'Failed to remove reaction' });
+    }
+});
+
+// Get pinned messages for a conversation
+router.get('/conversations/:id/pinned', async (req: Request, res: Response) => {
+    try {
+        const conversationId = parseInt(req.params.id);
+
+        const pinnedMessages = await prisma.pinnedMessage.findMany({
+            where: { conversation_id: conversationId },
+            include: {
+                message: {
+                    include: {
+                        sender: { select: { id: true, username: true, name: true, avatar: true } }
+                    }
+                }
+            },
+            orderBy: { pinned_at: 'desc' }
+        });
+
+        res.json(pinnedMessages);
+    } catch (error) {
+        console.error('Error fetching pinned messages:', error);
+        res.status(500).json({ error: 'Failed to fetch pinned messages' });
+    }
+});
+
+// Pin a message
+router.post('/messages/:id/pin', async (req: Request, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.id);
+        const { userId, conversationId } = req.body;
+
+        if (!userId || !conversationId) {
+            return res.status(400).json({ error: 'userId and conversationId are required' });
+        }
+
+        const pinned = await prisma.pinnedMessage.create({
+            data: {
+                conversation_id: conversationId,
+                message_id: messageId,
+                pinned_by: userId
+            },
+            include: {
+                message: {
+                    include: {
+                        sender: { select: { id: true, username: true, name: true, avatar: true } }
+                    }
+                }
+            }
+        });
+
+        // Emit to conversation
+        (req as any).io.to(`conversation:${conversationId}`).emit('message:pinned', {
+            messageId,
+            pinnedBy: userId,
+            conversationId,
+            pinnedMessage: pinned
+        });
+
+        res.json(pinned);
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            return res.status(400).json({ error: 'Message already pinned' });
+        }
+        console.error('Error pinning message:', error);
+        res.status(500).json({ error: 'Failed to pin message' });
+    }
+});
+
+// Unpin a message
+router.delete('/messages/:id/pin', async (req: Request, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.id);
+        const conversationId = parseInt(req.query.conversationId as string);
+        const userId = parseInt(req.query.userId as string);
+
+        if (!conversationId || !userId) {
+            return res.status(400).json({ error: 'conversationId and userId are required' });
+        }
+
+        await prisma.pinnedMessage.deleteMany({
+            where: {
+                conversation_id: conversationId,
+                message_id: messageId
+            }
+        });
+
+        // Emit to conversation
+        (req as any).io.to(`conversation:${conversationId}`).emit('message:unpinned', {
+            messageId,
+            conversationId
+        });
+
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error unpinning message:', error);
+        res.status(500).json({ error: 'Failed to unpin message' });
+    }
+});
+
+// Forward a message to other conversations
+router.post('/messages/:id/forward', async (req: Request, res: Response) => {
+    try {
+        const messageId = parseInt(req.params.id);
+        const { userId, targetConversationIds } = req.body;
+
+        if (!userId || !targetConversationIds || !Array.isArray(targetConversationIds)) {
+            return res.status(400).json({ error: 'userId and targetConversationIds are required' });
+        }
+
+        // Get original message
+        const originalMessage = await prisma.message.findUnique({
+            where: { id: messageId },
+            include: { sender: { select: { id: true, username: true, name: true } } }
+        });
+
+        if (!originalMessage || originalMessage.is_recalled) {
+            return res.status(404).json({ error: 'Message not found or was recalled' });
+        }
+
+        // Create forwarded messages
+        const forwardedMessages = await Promise.all(
+            targetConversationIds.map(async (convId: number) => {
+                const newMessage = await prisma.message.create({
+                    data: {
+                        conversation_id: convId,
+                        sender_id: userId,
+                        content: originalMessage.content,
+                        attachment_url: originalMessage.attachment_url,
+                        attachment_type: originalMessage.attachment_type,
+                        forwarded_from: messageId
+                    },
+                    include: {
+                        sender: { select: { id: true, username: true, name: true, avatar: true } },
+                        statuses: true,
+                        reactions: true
+                    }
+                });
+
+                // Update conversation timestamp
+                await prisma.conversation.update({
+                    where: { id: convId },
+                    data: { updated_at: new Date() }
+                });
+
+                // Emit to each target conversation
+                (req as any).io.to(`conversation:${convId}`).emit('message:new', newMessage);
+
+                return newMessage;
+            })
+        );
+
+        res.json({ success: true, forwardedMessages });
+    } catch (error) {
+        console.error('Error forwarding message:', error);
+        res.status(500).json({ error: 'Failed to forward message' });
+    }
+});
 
 export default router;

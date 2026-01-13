@@ -10,6 +10,10 @@ interface MessageListProps {
     onEdit: (msg: Message) => void;
     onDelete: (msg: Message) => void;
     onRecall: (msg: Message) => void;
+    onReply?: (msg: Message) => void;
+    onForward?: (msg: Message) => void;
+    onPin?: (msg: Message) => void;
+    onReaction?: (msgId: number, emoji: string, hasUserReacted: boolean) => void;
 }
 
 export function MessageList({
@@ -20,6 +24,10 @@ export function MessageList({
     onEdit,
     onDelete,
     onRecall,
+    onReply,
+    onForward,
+    onPin,
+    onReaction,
 }: MessageListProps) {
     return (
         <ScrollArea className="flex-1 p-4">
@@ -39,6 +47,10 @@ export function MessageList({
                             onEdit={onEdit}
                             onDelete={onDelete}
                             onRecall={onRecall}
+                            onReply={onReply}
+                            onForward={onForward}
+                            onPin={onPin}
+                            onReaction={onReaction}
                         />
                     );
                 })}

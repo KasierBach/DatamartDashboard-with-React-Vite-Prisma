@@ -10,6 +10,7 @@
         "postinstall": "npm run build",
         "init-db": "ts-node scripts/init-db.ts",
         "import-data": "ts-node scripts/import_data.ts",
+        "import-new-data": "ts-node scripts/import_new_data.ts",
         "seed-audit-logs": "ts-node scripts/seed_audit_logs.ts",
         "generate-types": "ts-node scripts/generate-types.ts",
         "seed-users": "ts-node scripts/seed_users.ts",

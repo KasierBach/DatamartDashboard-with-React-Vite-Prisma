@@ -1,4 +1,4 @@
-import { ArrowLeft, Info } from 'lucide-react';
+import { ArrowLeft, Info, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { UserAvatar } from './UserAvatar';
 import type { Conversation } from '../types';
@@ -9,6 +9,7 @@ interface ChatHeaderProps {
     isUserOnline: (userId: number) => boolean;
     onBackClick: () => void;
     onInfoClick?: () => void;
+    onSearchClick?: () => void;
 }
 
 export function ChatHeader({
@@ -16,7 +17,8 @@ export function ChatHeader({
     currentUserId,
     isUserOnline,
     onBackClick,
-    onInfoClick
+    onInfoClick,
+    onSearchClick
 }: ChatHeaderProps) {
     const isGroup = conversation.type === 'group';
     const otherUser = isGroup ? undefined : conversation.users?.find(u => u.id !== currentUserId);
@@ -49,11 +51,17 @@ export function ChatHeader({
                 </div>
             </div>
 
-            {isGroup && (
-                <Button variant="ghost" size="icon" onClick={onInfoClick}>
-                    <Info className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-1">
+                <Button variant="ghost" size="icon" onClick={onSearchClick} title="Tìm kiếm tin nhắn">
+                    <Search className="h-5 w-5 text-muted-foreground" />
                 </Button>
-            )}
+
+                {isGroup && (
+                    <Button variant="ghost" size="icon" onClick={onInfoClick} title="Thông tin nhóm">
+                        <Info className="h-5 w-5 text-muted-foreground" />
+                    </Button>
+                )}
+            </div>
         </div>
     );
 }

@@ -43,6 +43,9 @@ export const initializeSocket = (io: Server) => {
             content: string;
             attachmentUrl?: string;
             attachmentType?: string;
+            replyToId?: number;
+            voiceUrl?: string;
+            voiceDuration?: number;
         }) => {
             try {
                 // Save message to database
@@ -52,13 +55,22 @@ export const initializeSocket = (io: Server) => {
                         sender_id: data.senderId,
                         content: data.content,
                         attachment_url: data.attachmentUrl,
-                        attachment_type: data.attachmentType
+                        attachment_type: data.attachmentType,
+                        reply_to_id: data.replyToId,
+                        voice_url: data.voiceUrl,
+                        voice_duration: data.voiceDuration
                     },
                     include: {
                         statuses: true,
                         sender: {
                             select: { id: true, username: true, name: true, avatar: true }
-                        }
+                        },
+                        reply_to: {
+                            include: {
+                                sender: { select: { id: true, name: true } }
+                            }
+                        },
+                        reactions: true
                     }
                 });
 
@@ -338,8 +350,9 @@ export const initializeSocket = (io: Server) => {
         });
 
         // Typing indicator
-        socket.on('typing:start', (data: { conversationId: number; userId: number; userName: string }) => {
+        socket.on('typing:start', (data: { conversationId: number; userId: number; userName?: string }) => {
             socket.to(`conversation:${data.conversationId}`).emit('typing:update', {
+                conversationId: data.conversationId,
                 userId: data.userId,
                 userName: data.userName,
                 isTyping: true
@@ -348,6 +361,7 @@ export const initializeSocket = (io: Server) => {
 
         socket.on('typing:stop', (data: { conversationId: number; userId: number }) => {
             socket.to(`conversation:${data.conversationId}`).emit('typing:update', {
+                conversationId: data.conversationId,
                 userId: data.userId,
                 isTyping: false
             });

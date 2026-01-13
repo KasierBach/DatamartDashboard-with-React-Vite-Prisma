@@ -16,6 +16,14 @@ export interface MessageStatus {
     seen_at: string | null;
 }
 
+export interface MessageReaction {
+    id: number;
+    message_id: number;
+    user_id: number;
+    emoji: string;
+    created_at: string;
+}
+
 export interface Message {
     id: number;
     conversation_id: number;
@@ -26,6 +34,17 @@ export interface Message {
     is_recalled?: boolean;
     attachment_url?: string;
     attachment_type?: 'image' | 'video' | 'file';
+    // New fields for enhanced features
+    reply_to_id?: number;
+    reply_to?: {
+        id: number;
+        content: string;
+        sender?: { id: number; name: string };
+    };
+    forwarded_from?: number;
+    voice_url?: string;
+    voice_duration?: number;
+    reactions?: MessageReaction[];
     statuses: MessageStatus[];
     sender?: {
         id: number;
@@ -33,6 +52,15 @@ export interface Message {
         name: string;
         avatar?: string;
     };
+}
+
+export interface PinnedMessage {
+    id: number;
+    conversation_id: number;
+    message_id: number;
+    pinned_by: number;
+    pinned_at: string;
+    message: Message;
 }
 
 export interface Conversation {
@@ -46,4 +74,5 @@ export interface Conversation {
     members?: { user_id: number; role: string; }[];
     messages: Message[];
     unreadCount: number;
+    pinnedMessages?: PinnedMessage[];
 }
